@@ -48,6 +48,7 @@ CIRCUIT_REDESIGN_YEAR = {
     "yas_marina": 2009,
     "baku": 2016,
 }
+
 DEFAULT_HISTORY_WINDOW = 10
 
 @app.get("/api/status")

@@ -13,13 +13,14 @@ def test_redesign_year_map_has_known_circuits():
     assert "bahrain" in CIRCUIT_REDESIGN_YEAR
     assert CIRCUIT_REDESIGN_YEAR["silverstone"] == 2010
     assert CIRCUIT_REDESIGN_YEAR["jeddah"] == 2021
+    assert all(1929 <= v <= CURRENT_SEASON for v in CIRCUIT_REDESIGN_YEAR.values())
 
 def test_available_years_known_circuit():
     circuit_id = "silverstone"
     start = CIRCUIT_REDESIGN_YEAR[circuit_id]
     years = list(range(start, CURRENT_SEASON))
     assert years[0] == 2010
-    assert years[-1] == 2025
+    assert years[-1] == CURRENT_SEASON - 1
     assert CURRENT_SEASON not in years  # only completed seasons
 
 def test_available_years_unknown_circuit():
