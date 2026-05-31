@@ -332,6 +332,8 @@ const CircuitDetailsModal = ({ isOpen, onClose, circuit }: any) => {
   useEffect(() => {
     setData(null);
     setError(false);
+    setSelectedYear(null);
+    setYearResults([]);
     if (!isOpen || !circuit?.circuitId) return;
     setLoading(true);
     axios.get(`${API_BASE}/circuit/${circuit.circuitId}`)
@@ -349,16 +351,17 @@ const CircuitDetailsModal = ({ isOpen, onClose, circuit }: any) => {
   }, [isOpen, circuit?.circuitId]);
 
   useEffect(() => {
-    if (!isOpen || !circuit?.circuitId || selectedYear === null) return;
-    if (!data) return;
+    if (!isOpen || !circuit?.circuitId || selectedYear === null || !data) return;
     const initialYear = data.available_years?.[data.available_years.length - 1];
     if (selectedYear === initialYear) return;
     setYearLoading(true);
+    setYearResults([]);
+    // Backend fetches (season-1) results; pass selectedYear+1 so it returns selectedYear's data
     axios.get(`${API_BASE}/circuit/${circuit.circuitId}?season=${selectedYear + 1}`)
       .then(res => setYearResults(res.data.prev_results || []))
       .catch(() => setYearResults([]))
       .finally(() => setYearLoading(false));
-  }, [selectedYear]);
+  }, [selectedYear, data, circuit?.circuitId, isOpen]);
 
   const circuitId = circuit?.circuitId || '';
 
