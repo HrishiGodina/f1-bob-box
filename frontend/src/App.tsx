@@ -14,7 +14,7 @@ import "@fontsource/inter/700.css";
 import "@fontsource/inter/900.css";
 import { CIRCUIT_GEOJSON } from './circuits/index';
 
-const API_BASE = "http://localhost:8000/api";
+const API_BASE = (import.meta as any).env?.VITE_API_BASE ?? "http://localhost:8000/api";
 
 // --- Custom Components ---
 
@@ -58,7 +58,14 @@ const TeamLogo = ({ teamId, className }: { teamId: string; className?: string })
   );
 };
 
-const StudioModal = ({ isOpen, onClose, title, children }: any) => (
+const StudioModal = ({ isOpen, onClose, title, children }: any) => {
+  useEffect(() => {
+    if (!isOpen) return;
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [isOpen, onClose]);
+  return (
   <AnimatePresence>
     {isOpen && (
       <div className="fixed inset-0 z-[200] flex items-center justify-center p-0 md:p-8">
@@ -85,7 +92,8 @@ const StudioModal = ({ isOpen, onClose, title, children }: any) => (
       </div>
     )}
   </AnimatePresence>
-);
+  );
+};
 
 const CircularGauge = ({ value, max, label, color, unit }: { value: number, max: number, label: string, color: string, unit: string }) => {
   const percentage = Math.min((value / max) * 100, 100);
@@ -304,7 +312,7 @@ const CircuitElevation = ({ circuitId }: { circuitId: string }) => {
   }, [circuitId]);
 
   return (
-    <div className="h-full w-full bg-white/[0.02] rounded-2xl border border-white/5 relative overflow-hidden" style={{ minHeight: '100px' }}>
+    <div className="h-28 w-full bg-white/[0.02] rounded-2xl border border-white/5 relative overflow-hidden">
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={data} margin={{ top: 8, right: 0, left: 0, bottom: 8 }}>
           <defs>
@@ -321,49 +329,94 @@ const CircuitElevation = ({ circuitId }: { circuitId: string }) => {
   );
 };
 
-const CircuitDetailsModal = ({ isOpen, onClose, circuit }: any) => {
+const SESSION_TABS = [
+  { key: 'race',   label: 'RACE' },
+  { key: 'quali',  label: 'QUALI' },
+  { key: 'sprint', label: 'SPRINT' },
+  { key: 'fp1',    label: 'FP1', fpOnly: true },
+  { key: 'fp2',    label: 'FP2', fpOnly: true },
+  { key: 'fp3',    label: 'FP3', fpOnly: true },
+];
+
+const CircuitDetailsModal = ({ isOpen, onClose, circuit, onDriverClick }: any) => {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
   const [yearResults, setYearResults] = useState<any[]>([]);
   const [yearLoading, setYearLoading] = useState(false);
+  const [resultsExpanded, setResultsExpanded] = useState(false);
+  const [mainTab, setMainTab] = useState<'circuit' | 'weekend'>('circuit');
+  const [sessionTab, setSessionTab] = useState('race');
+  // cache: { [year_session]: { results, available } }
+  const [sessionCache, setSessionCache] = useState<Record<string, any>>({});
+  const [sessionLoading, setSessionLoading] = useState(false);
 
   useEffect(() => {
     setData(null);
     setError(false);
     setSelectedYear(null);
     setYearResults([]);
+    setResultsExpanded(false);
+    setMainTab('circuit');
+    setSessionTab('race');
+    setSessionCache({});
     if (!isOpen || !circuit?.circuitId) return;
     setLoading(true);
     axios.get(`${API_BASE}/circuit/${circuit.circuitId}`)
       .then(res => {
         setData(res.data);
         const years: number[] = res.data.available_years || [];
-        if (years.length > 0) {
-          const latest = years[years.length - 1];
-          setSelectedYear(latest);
-          setYearResults(res.data.prev_results || []);
-        }
+        if (years.length > 0) setSelectedYear(years[years.length - 1]);
       })
       .catch(() => setError(true))
       .finally(() => setLoading(false));
   }, [isOpen, circuit?.circuitId]);
 
   useEffect(() => {
-    if (!isOpen || !circuit?.circuitId || selectedYear === null || !data) return;
-    const initialYear = data.available_years?.[data.available_years.length - 1];
-    if (selectedYear === initialYear) return;
+    if (!isOpen || !circuit?.circuitId || selectedYear === null) return;
     setYearLoading(true);
     setYearResults([]);
-    // Backend fetches (season-1) results; pass selectedYear+1 so it returns selectedYear's data
+    setResultsExpanded(false);
     axios.get(`${API_BASE}/circuit/${circuit.circuitId}?season=${selectedYear + 1}`)
       .then(res => setYearResults(res.data.prev_results || []))
       .catch(() => setYearResults([]))
       .finally(() => setYearLoading(false));
-  }, [selectedYear, data, circuit?.circuitId, isOpen]);
+  }, [selectedYear, circuit?.circuitId, isOpen]);
+
+  // Fetch race-weekend session data when tab or year changes
+  useEffect(() => {
+    if (!isOpen || !circuit?.circuitId || selectedYear === null || mainTab !== 'weekend') return;
+    const cacheKey = `${selectedYear}_${sessionTab}`;
+    if (sessionCache[cacheKey] !== undefined) return;
+    const tab = SESSION_TABS.find(t => t.key === sessionTab);
+    if (tab?.fpOnly && selectedYear < 2023) {
+      setSessionCache(c => ({ ...c, [cacheKey]: { results: [], available: false } }));
+      return;
+    }
+    setSessionLoading(true);
+    axios.get(`${API_BASE}/race-weekend/${circuit.circuitId}`, { params: { year: selectedYear, session: sessionTab } })
+      .then(res => setSessionCache(c => ({ ...c, [cacheKey]: res.data })))
+      .catch(() => setSessionCache(c => ({ ...c, [cacheKey]: { results: [], available: false } })))
+      .finally(() => setSessionLoading(false));
+  }, [isOpen, circuit?.circuitId, selectedYear, sessionTab, mainTab]);
 
   const circuitId = circuit?.circuitId || '';
+  const currentCacheKey = `${selectedYear}_${sessionTab}`;
+  const currentSession = sessionCache[currentCacheKey];
+  const visibleSessionTabs = SESSION_TABS.filter(t => !t.fpOnly || (selectedYear !== null && selectedYear >= 2023));
+
+  const YearPicker = () => data?.available_years?.length > 0 ? (
+    <select
+      value={selectedYear ?? ''}
+      onChange={e => { setSelectedYear(Number(e.target.value)); setSessionCache({}); }}
+      className="bg-white/10 text-white text-[10px] font-black uppercase tracking-widest border border-white/10 rounded-lg px-3 py-1.5 cursor-pointer focus:outline-none focus:border-mkbhd-red"
+    >
+      {[...data.available_years].reverse().map((y: number) => (
+        <option key={y} value={y} className="bg-mkbhd-studio text-white">{y}</option>
+      ))}
+    </select>
+  ) : null;
 
   return (
     <StudioModal isOpen={isOpen} onClose={onClose} title={`${circuit?.circuitName?.toUpperCase() || 'CIRCUIT'} ANALYSIS`}>
@@ -372,21 +425,35 @@ const CircuitDetailsModal = ({ isOpen, onClose, circuit }: any) => {
        ) : error ? (
          <div className="h-96 flex items-center justify-center text-mkbhd-gray font-black italic text-2xl">DATA_LINK_FAILED — try again</div>
        ) : data ? (
-         <div className="space-y-16">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-               <div className="lg:col-span-2 space-y-12">
+         <div className="space-y-10">
+            {/* Main tab bar */}
+            <div className="flex items-center gap-4">
+              <div className="flex bg-white/5 p-1.5 rounded-2xl border border-white/10">
+                {(['circuit', 'weekend'] as const).map(tab => (
+                  <button key={tab} onClick={() => setMainTab(tab)}
+                    className={`px-8 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${mainTab === tab ? 'bg-mkbhd-red text-white shadow-lg' : 'text-mkbhd-gray hover:text-white'}`}>
+                    {tab === 'circuit' ? 'CIRCUIT' : 'RACE WEEKEND'}
+                  </button>
+                ))}
+              </div>
+              <div className="ml-auto"><YearPicker /></div>
+            </div>
+
+            {mainTab === 'circuit' && (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+                <div className="lg:col-span-2 space-y-12">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-                     {[
-                       { label: 'Location', value: `${circuit?.Location?.locality}, ${circuit?.Location?.country}` },
-                       { label: 'Corners', value: data.stats.corners },
-                       { label: 'Laps', value: data.stats.laps },
-                       { label: 'Lap Record', value: data.stats.lap_record }
-                     ].map(s => (
-                       <div key={s.label} className="mkbhd-card p-8 bg-white/[0.02]">
-                          <div className="text-[9px] font-black text-mkbhd-gray uppercase tracking-widest mb-3">{s.label}</div>
-                          <div className="text-xl font-black italic text-white uppercase">{s.value}</div>
-                       </div>
-                     ))}
+                    {[
+                      { label: 'Location', value: `${circuit?.Location?.locality}, ${circuit?.Location?.country}` },
+                      { label: 'Corners', value: data.stats.corners },
+                      { label: 'Laps', value: data.stats.laps },
+                      { label: 'Lap Record', value: data.stats.lap_record }
+                    ].map(s => (
+                      <div key={s.label} className="mkbhd-card p-8 bg-white/[0.02]">
+                        <div className="text-[9px] font-black text-mkbhd-gray uppercase tracking-widest mb-3">{s.label}</div>
+                        <div className="text-xl font-black italic text-white uppercase">{s.value}</div>
+                      </div>
+                    ))}
                   </div>
                   <CircuitElevation circuitId={circuitId} />
                   <div className="space-y-8">
@@ -394,45 +461,55 @@ const CircuitDetailsModal = ({ isOpen, onClose, circuit }: any) => {
                       <Zap size={14} className="text-mkbhd-red" /> Team Tactical Upgrades
                     </h4>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                       {data.upgrades.map((u: any) => (
-                         <div key={u.team} className="p-6 bg-white/5 rounded-2xl border border-white/10">
-                            <div className="text-[10px] font-black text-white uppercase mb-2">{u.team}</div>
-                            <div className="text-sm font-bold text-mkbhd-gray">{u.item}</div>
-                            <div className={`text-[8px] font-black uppercase mt-4 px-2 py-0.5 rounded inline-block ${u.impact === 'High' ? 'bg-mkbhd-red text-white' : 'bg-white/10 text-white'}`}>Impact: {u.impact}</div>
-                         </div>
-                       ))}
+                      {data.upgrades.map((u: any) => (
+                        <div key={u.team} className="p-6 bg-white/5 rounded-2xl border border-white/10">
+                          <div className="text-[10px] font-black text-white uppercase mb-2">{u.team}</div>
+                          <div className="text-sm font-bold text-mkbhd-gray">{u.item}</div>
+                          <div className={`text-[8px] font-black uppercase mt-4 px-2 py-0.5 rounded inline-block ${u.impact === 'High' ? 'bg-mkbhd-red text-white' : 'bg-white/10 text-white'}`}>Impact: {u.impact}</div>
+                        </div>
+                      ))}
                     </div>
                   </div>
-               </div>
-               <div className="space-y-12">
+                </div>
+                <div className="space-y-12">
+                  <div className="mkbhd-card bg-mkbhd-black flex flex-col items-center justify-center min-h-[260px] relative rounded-[2.5rem] overflow-hidden border-white/5 shadow-2xl p-8">
+                    <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.08) 1px, transparent 0)', backgroundSize: '20px 20px' }} />
+                    <div className="w-full flex-1 relative z-10">
+                      <CircuitTrack3D circuitId={circuitId} />
+                    </div>
+                    <div className="relative z-10 mt-4 text-center space-y-1">
+                      <div className="text-lg font-black uppercase italic tracking-tight text-white/80">{circuit?.circuitName}</div>
+                      <div className="text-[9px] font-black uppercase tracking-[0.8em] text-mkbhd-red animate-pulse">Circuit Layout Active</div>
+                    </div>
+                    <div className="absolute inset-0 bg-gradient-to-br from-mkbhd-red/5 via-transparent to-transparent pointer-events-none" />
+                  </div>
                   <div className="mkbhd-card p-10 bg-mkbhd-red/5 border-mkbhd-red/20">
                     <div className="flex items-center justify-between mb-8">
                       <h4 className="text-xs font-black uppercase tracking-[0.4em] text-mkbhd-red">Race Results</h4>
-                      {data.available_years?.length > 0 && (
-                        <select
-                          value={selectedYear ?? ''}
-                          onChange={e => setSelectedYear(Number(e.target.value))}
-                          className="bg-white/10 text-white text-[10px] font-black uppercase tracking-widest border border-white/10 rounded-lg px-3 py-1.5 cursor-pointer focus:outline-none focus:border-mkbhd-red"
-                        >
-                          {[...data.available_years].reverse().map((y: number) => (
-                            <option key={y} value={y} className="bg-mkbhd-studio text-white">{y}</option>
-                          ))}
-                        </select>
-                      )}
                     </div>
-                    <div className="space-y-6">
+                    <div className="space-y-4">
                       {yearLoading ? (
                         <div className="text-mkbhd-red animate-pulse font-black italic text-sm">LOADING...</div>
                       ) : yearResults.length > 0 ? (
-                        yearResults.slice(0, 5).map((r: any) => (
-                          <div key={r.Driver?.driverId || r.position} className="flex items-center justify-between border-b border-white/5 pb-4 last:border-0">
-                            <div className="flex items-center gap-4">
-                              <span className="text-xl font-black italic text-white/20">P{r.position}</span>
-                              <div className="font-black uppercase italic text-sm">{r.Driver?.familyName}</div>
-                            </div>
-                            <div className="text-[10px] font-bold text-mkbhd-gray">{r.Constructor?.name}</div>
-                          </div>
-                        ))
+                        <>
+                          {(resultsExpanded ? yearResults : yearResults.slice(0, 5)).map((r: any) => {
+                            const isFinished = !r.status || r.status.toLowerCase().startsWith('finished') || /^\+\d+ Lap/.test(r.status);
+                            return (
+                              <div key={r.Driver?.driverId || r.position} onClick={() => onDriverClick?.(r.Driver?.driverId)} className="flex items-center justify-between border-b border-white/5 pb-3 last:border-0 cursor-pointer hover:bg-white/5 rounded-lg px-2 -mx-2 transition-colors group">
+                                <div className="flex items-center gap-4">
+                                  <span className="text-xl font-black italic text-white/20 group-hover:text-mkbhd-red transition-colors">{isFinished ? `P${r.position}` : 'DNF'}</span>
+                                  <div className="font-black uppercase italic text-sm group-hover:text-mkbhd-red transition-colors">{r.Driver?.familyName}</div>
+                                </div>
+                                <div className="text-[10px] font-bold text-mkbhd-gray">{r.Constructor?.name}</div>
+                              </div>
+                            );
+                          })}
+                          {yearResults.length > 5 && (
+                            <button onClick={() => setResultsExpanded(e => !e)} className="w-full text-[10px] font-black uppercase tracking-widest text-mkbhd-gray hover:text-white transition-colors pt-2">
+                              {resultsExpanded ? '▲ SHOW LESS' : `▼ SHOW ALL ${yearResults.length} RESULTS`}
+                            </button>
+                          )}
+                        </>
                       ) : (
                         <div className="text-mkbhd-gray italic text-sm">
                           {data.available_years?.length === 0 ? 'No historical data' : 'NO DATA'}
@@ -444,8 +521,81 @@ const CircuitDetailsModal = ({ isOpen, onClose, circuit }: any) => {
                     <span className="text-white font-black not-italic block mb-4 uppercase tracking-widest text-[10px]">Strategic Intel:</span>
                     "The high-downforce nature of this circuit demands maximum efficiency from the front wing. Thermal degradation on the rear-left is the primary performance bottleneck."
                   </div>
-               </div>
-            </div>
+                </div>
+              </div>
+            )}
+
+            {mainTab === 'weekend' && (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+                {/* Left: track card */}
+                <div className="mkbhd-card bg-mkbhd-black flex flex-col items-center justify-center min-h-[320px] relative rounded-[2.5rem] overflow-hidden border-white/5 shadow-2xl p-8 self-start">
+                  <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.08) 1px, transparent 0)', backgroundSize: '20px 20px' }} />
+                  <div className="w-full flex-1 relative z-10">
+                    <CircuitTrack3D circuitId={circuitId} />
+                  </div>
+                  <div className="relative z-10 mt-4 text-center space-y-1">
+                    <div className="text-lg font-black uppercase italic tracking-tight text-white/80">{circuit?.circuitName}</div>
+                    <div className="text-[9px] font-black uppercase tracking-[0.8em] text-mkbhd-red animate-pulse">{selectedYear} Season</div>
+                  </div>
+                  <div className="absolute inset-0 bg-gradient-to-br from-mkbhd-red/5 via-transparent to-transparent pointer-events-none" />
+                </div>
+                {/* Right: session tabs + results */}
+                <div className="lg:col-span-2 space-y-8">
+                  {/* Session sub-tab bar */}
+                  <div className="flex gap-2 flex-wrap">
+                    {visibleSessionTabs.map(tab => {
+                      const cKey = `${selectedYear}_${tab.key}`;
+                      const cached = sessionCache[cKey];
+                      const hasData = cached?.available;
+                      const checked = cached !== undefined;
+                      if (checked && !hasData && tab.key !== 'race' && tab.key !== 'quali') return null;
+                      return (
+                        <button key={tab.key} onClick={() => setSessionTab(tab.key)}
+                          className={`px-5 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl border transition-all ${sessionTab === tab.key ? 'bg-mkbhd-red text-white border-mkbhd-red' : 'bg-white/5 border-white/10 text-mkbhd-gray hover:text-white hover:border-white/30'}`}>
+                          {tab.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {/* Results */}
+                  <div className="mkbhd-card p-10 bg-mkbhd-red/5 border-mkbhd-red/20 min-h-[300px]">
+                    <div className="text-xs font-black uppercase tracking-[0.4em] text-mkbhd-red mb-8">
+                      {SESSION_TABS.find(t => t.key === sessionTab)?.label} — {selectedYear}
+                    </div>
+                    {sessionLoading && !currentSession ? (
+                      <div className="text-mkbhd-red animate-pulse font-black italic text-sm">LOADING...</div>
+                    ) : currentSession?.available ? (
+                      <div className="space-y-3">
+                        {currentSession.results.map((r: any, i: number) => {
+                          const isFP = ['fp1','fp2','fp3'].includes(sessionTab);
+                          const isQuali = sessionTab === 'quali';
+                          return (
+                            <div key={i}
+                              onClick={() => !isFP && onDriverClick?.(r.driver_id)}
+                              className={`flex items-center justify-between border-b border-white/5 pb-3 last:border-0 rounded-lg px-2 -mx-2 transition-colors group ${!isFP ? 'cursor-pointer hover:bg-white/5' : ''}`}>
+                              <div className="flex items-center gap-4">
+                                <span className="text-xl font-black italic text-white/20 group-hover:text-mkbhd-red transition-colors">
+                                  {!isFP && !isQuali && !r.is_finished ? 'DNF' : `P${r.position}`}
+                                </span>
+                                <div>
+                                  <div className="font-black uppercase italic text-sm group-hover:text-mkbhd-red transition-colors">{r.family_name}</div>
+                                  {r.team && <div className="text-[9px] text-mkbhd-gray uppercase tracking-widest mt-0.5">{r.team}</div>}
+                                </div>
+                              </div>
+                              <div className="text-[10px] font-bold text-mkbhd-gray font-mono">{r.time}</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : currentSession && !currentSession.available ? (
+                      <div className="text-mkbhd-gray italic text-sm">No data for this session</div>
+                    ) : (
+                      <div className="text-mkbhd-gray italic text-sm">Select a session tab above</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
          </div>
        ) : null}
     </StudioModal>
@@ -545,14 +695,81 @@ const CareerModal = ({ isOpen, onClose, type, id }: any) => {
   );
 };
 
+// --- Mock data for LiveDashboard simulation ---
+
+const MOCK_DRIVERS = [
+  { driver_number: 1,  full_name: 'Max Verstappen',    name_acronym: 'VER', team_name: 'red_bull' },
+  { driver_number: 4,  full_name: 'Lando Norris',      name_acronym: 'NOR', team_name: 'mclaren' },
+  { driver_number: 16, full_name: 'Charles Leclerc',   name_acronym: 'LEC', team_name: 'ferrari' },
+  { driver_number: 63, full_name: 'George Russell',    name_acronym: 'RUS', team_name: 'mercedes' },
+  { driver_number: 44, full_name: 'Lewis Hamilton',    name_acronym: 'HAM', team_name: 'ferrari' },
+  { driver_number: 14, full_name: 'Fernando Alonso',   name_acronym: 'ALO', team_name: 'aston_martin' },
+  { driver_number: 55, full_name: 'Carlos Sainz',      name_acronym: 'SAI', team_name: 'williams' },
+  { driver_number: 81, full_name: 'Oscar Piastri',     name_acronym: 'PIA', team_name: 'mclaren' },
+  { driver_number: 18, full_name: 'Lance Stroll',      name_acronym: 'STR', team_name: 'aston_martin' },
+  { driver_number: 10, full_name: 'Pierre Gasly',      name_acronym: 'GAS', team_name: 'alpine' },
+  { driver_number: 22, full_name: 'Yuki Tsunoda',      name_acronym: 'TSU', team_name: 'rb' },
+  { driver_number: 3,  full_name: 'Daniel Ricciardo',  name_acronym: 'RIC', team_name: 'rb' },
+  { driver_number: 23, full_name: 'Alexander Albon',   name_acronym: 'ALB', team_name: 'williams' },
+  { driver_number: 77, full_name: 'Valtteri Bottas',   name_acronym: 'BOT', team_name: 'sauber' },
+  { driver_number: 24, full_name: 'Zhou Guanyu',       name_acronym: 'ZHO', team_name: 'sauber' },
+  { driver_number: 20, full_name: 'Kevin Magnussen',   name_acronym: 'MAG', team_name: 'haas' },
+  { driver_number: 27, full_name: 'Nico Hülkenberg',   name_acronym: 'HUL', team_name: 'haas' },
+  { driver_number: 2,  full_name: 'Logan Sargeant',    name_acronym: 'SAR', team_name: 'williams' },
+  { driver_number: 31, full_name: 'Esteban Ocon',      name_acronym: 'OCO', team_name: 'alpine' },
+  { driver_number: 11, full_name: 'Sergio Perez',      name_acronym: 'PER', team_name: 'red_bull' },
+];
+
+const buildMockLiveData = (tick: number) => {
+  const t = tick * 0.15;
+  const speed = Math.round(220 + Math.sin(t) * 120);
+  const rpm = Math.round(8500 + Math.sin(t * 1.3) * 3000);
+  const gear = Math.min(8, Math.max(1, Math.round(4 + Math.sin(t * 0.7) * 3)));
+  const throttle = Math.round(Math.max(0, Math.min(100, 60 + Math.sin(t) * 45)));
+  const brake = Math.round(Math.max(0, Math.min(100, throttle > 60 ? 0 : (100 - throttle) * 0.6)));
+  const driversMap = Object.fromEntries(MOCK_DRIVERS.map(d => [d.driver_number, d]));
+  const intervals = MOCK_DRIVERS.map((d, i) => ({
+    driver_number: d.driver_number,
+    interval: i === 0 ? null : `+${(i * 1.2 + Math.sin(t + i) * 0.3).toFixed(3)}s`,
+  }));
+  const telPoint = { speed, rpm, n_gear: gear, throttle, brake, date: new Date().toISOString() };
+  return { intervals, drivers: driversMap, telemetry: [telPoint], throttle, brake, speed, rpm, n_gear: gear };
+};
+
+const buildMockLocations = (tick: number) => {
+  return MOCK_DRIVERS.map((d, i) => {
+    const angle = (tick * 0.04 + (i / MOCK_DRIVERS.length) * Math.PI * 2);
+    return {
+      driver_number: d.driver_number,
+      x: Math.cos(angle) * 300 + 400,
+      y: Math.sin(angle) * 200 + 300,
+    };
+  });
+};
+
 // --- View Components ---
 
-const LiveDashboard = ({ status }: any) => {
+const LiveDashboard = ({ status, useMock }: any) => {
   const [liveData, setLiveData] = useState<any>(null);
   const [locations, setLocations] = useState<any[]>([]);
   const [selectedDriver, setSelectedDriver] = useState<number | null>(null);
+  const mockTickRef = { current: 0 };
 
   useEffect(() => {
+    if (useMock) {
+      const run = () => {
+        mockTickRef.current += 1;
+        const md = buildMockLiveData(mockTickRef.current);
+        setLiveData((prev: any) => ({
+          ...md,
+          telemetry: [...(prev?.telemetry?.slice(-49) || []), md.telemetry[0]],
+        }));
+        setLocations(buildMockLocations(mockTickRef.current));
+      };
+      run();
+      const interval = setInterval(run, 500);
+      return () => clearInterval(interval);
+    }
     const fetchData = async () => {
       try {
         const [liveRes, locRes] = await Promise.all([
@@ -566,7 +783,7 @@ const LiveDashboard = ({ status }: any) => {
     fetchData();
     const interval = setInterval(fetchData, 2000);
     return () => clearInterval(interval);
-  }, [status.session_key, selectedDriver]);
+  }, [status.session_key, selectedDriver, useMock]);
 
   const latestTel = liveData?.telemetry?.[liveData.telemetry.length - 1] || { speed: 0, rpm: 0, n_gear: 0, throttle: 0, brake: 0 };
 
@@ -695,6 +912,20 @@ const LiveDashboard = ({ status }: any) => {
   );
 };
 
+// Official F1 wordmark SVG — angular "F1" letterforms in brand red/white
+const F1Logo = ({ className = '', color = '#cc0000' }: { className?: string; color?: string }) => (
+  <svg className={className} viewBox="0 0 120 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+    {/* F letterform */}
+    <polygon points="0,0 52,0 52,10 12,10 12,18 46,18 46,28 12,28 12,44 0,44" fill={color} />
+    {/* 1 letterform */}
+    <polygon points="62,0 80,0 80,44 68,44 68,10 58,14 58,2" fill="white" />
+    {/* Red accent bar */}
+    <rect x="84" y="0" width="36" height="8" fill={color} />
+    <rect x="84" y="18" width="36" height="8" fill={color} />
+    <rect x="84" y="36" width="36" height="8" fill={color} />
+  </svg>
+);
+
 const scrollToSection = (id: string) => {
   const el = document.getElementById(id);
   if (el) el.scrollIntoView({ behavior: 'smooth' });
@@ -748,11 +979,40 @@ export default function App() {
     return () => clearInterval(interval);
   }, [useMock]);
 
-  if (loading) return (
-    <div className="h-screen w-screen flex flex-col items-center justify-center bg-mkbhd-black">
-      <motion.div animate={{ opacity: [1, 0.4, 1] }} transition={{ repeat: Infinity, duration: 2 }} className="text-white font-black text-9xl italic tracking-tighter">F1</motion.div>
-      <div className="mt-8 font-black uppercase text-[10px] tracking-[0.6em] text-mkbhd-gray animate-pulse">Studio Systems Initializing</div>
-    </div>
+  // Splash: 'logo' (pulse 1.8s) → 'expand' (scale to fill, 0.6s) → 'done'
+  const [splashPhase, setSplashPhase] = useState<'logo' | 'expand' | 'done'>(loading ? 'logo' : 'done');
+  useEffect(() => {
+    if (!loading && splashPhase === 'logo') {
+      setSplashPhase('expand');
+      const t = setTimeout(() => setSplashPhase('done'), 700);
+      return () => clearTimeout(t);
+    }
+  }, [loading]);
+
+  if (splashPhase !== 'done') return (
+    <AnimatePresence>
+      <motion.div
+        key="splash"
+        className="fixed inset-0 z-[9999] bg-mkbhd-black flex flex-col items-center justify-center overflow-hidden"
+        animate={splashPhase === 'expand' ? { scale: 20, opacity: 0 } : {}}
+        transition={{ duration: 0.65, ease: [0.76, 0, 0.24, 1] }}
+      >
+        <motion.div
+          animate={splashPhase === 'logo' ? { opacity: [1, 0.5, 1] } : { scale: 1 }}
+          transition={splashPhase === 'logo' ? { repeat: Infinity, duration: 1.4 } : {}}
+          className="flex flex-col items-center gap-6"
+        >
+          <F1Logo className="w-32 h-auto" color="#cc0000" />
+          <div className="text-[9px] font-black uppercase tracking-[0.8em] text-mkbhd-gray">Strategy Center // 2026</div>
+        </motion.div>
+        {splashPhase === 'logo' && (
+          <div className="absolute bottom-16 left-1/2 -translate-x-1/2 flex items-center gap-2">
+            <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1.2 }} className="w-1.5 h-1.5 rounded-full bg-mkbhd-red" />
+            <span className="text-[8px] font-black uppercase tracking-[0.6em] text-mkbhd-gray">Initializing</span>
+          </div>
+        )}
+      </motion.div>
+    </AnimatePresence>
   );
 
   return (
@@ -760,7 +1020,7 @@ export default function App() {
       {/* --- Navbar --- */}
       <nav className="studio-header px-8 md:px-16 py-8 flex justify-between items-center">
         <div className="flex items-center gap-8 group cursor-pointer" onClick={() => window.location.reload()}>
-           <div className="text-4xl font-black italic tracking-tighter text-mkbhd-red">F1<span className="text-white">D</span></div>
+           <F1Logo className="w-16 h-auto" color="#cc0000" />
            <div className="hidden md:block h-8 w-px bg-white/10" />
            <div className="hidden md:flex flex-col">
               <span className="text-[10px] font-black uppercase tracking-[0.5em] text-mkbhd-gray leading-none">Strategy Center</span>
@@ -822,7 +1082,7 @@ export default function App() {
         <AnimatePresence mode="wait">
           {status?.is_live ? (
             <motion.div key="live" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
-               <LiveDashboard status={status} />
+               <LiveDashboard status={status} useMock={useMock} />
             </motion.div>
           ) : (
             <motion.div key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-24">
@@ -928,7 +1188,7 @@ export default function App() {
               {(() => {
                 const today = new Date().toISOString().slice(0, 10);
                 const completed = idleData?.schedule?.filter((r: any) => r.date < today) || [];
-                const upcoming = idleData?.schedule?.filter((r: any) => r.date >= today)?.slice(0, 4) || [];
+                const upcoming = idleData?.schedule?.filter((r: any) => r.date >= today) || [];
                 return (
                   <>
                     {completed.length > 0 && (
@@ -960,9 +1220,9 @@ export default function App() {
                     {upcoming.length > 0 && (
                       <section className="space-y-12" id="archive">
                         <SectionHeader icon={MapPin} title="Upcoming Races" />
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
+                        <div className="flex gap-8 overflow-x-auto pb-4 -mx-2 px-2 scrollbar-hide">
                           {upcoming.map((race: any, i: number) => (
-                            <div key={i} className="mkbhd-card p-14 bg-white/[0.01] border-white/10 group hover:border-mkbhd-red transition-all rounded-[3rem] relative overflow-hidden">
+                            <motion.div key={i} whileHover={{ scale: 1.02 }} onClick={() => setSelectedCircuit(race.Circuit)} className="mkbhd-card p-14 bg-white/[0.01] border-white/10 group hover:border-mkbhd-red transition-all rounded-[3rem] relative overflow-hidden flex-shrink-0 w-72 cursor-pointer">
                               <div className="absolute -right-8 -top-8 text-white/5 font-black text-9xl italic group-hover:text-mkbhd-red/10 transition-colors">#{race.round}</div>
                               <h4 className="text-4xl font-black leading-tight mb-6 uppercase italic tracking-tighter">{race.raceName}</h4>
                               <div className="text-[12px] font-black text-mkbhd-gray uppercase tracking-[0.4em] mb-16 flex items-center gap-3">
@@ -974,7 +1234,7 @@ export default function App() {
                                   <MapPin size={24} className="group-hover:text-white transition-colors" />
                                 </div>
                               </div>
-                            </div>
+                            </motion.div>
                           ))}
                         </div>
                       </section>
@@ -983,9 +1243,9 @@ export default function App() {
                     {/* --- News (Global Dispatch) --- */}
                     <section className="space-y-12" id="news">
                       <SectionHeader icon={Newspaper} title="Global Dispatch" />
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-                        {idleData?.news?.slice(0, 4).map((n: any, i: number) => (
-                          <motion.a whileHover={{ y: -8, scale: 0.99 }} key={i} href={n.links?.web?.href} target="_blank" className="mkbhd-card group flex flex-col bg-white/[0.01] overflow-hidden border-white/10 rounded-[2rem] shadow-2xl">
+                      <div className="flex gap-8 overflow-x-auto pb-4 -mx-2 px-2 scrollbar-hide">
+                        {idleData?.news?.map((n: any, i: number) => (
+                          <motion.a whileHover={{ y: -8, scale: 0.99 }} key={i} href={n.links?.web?.href} target="_blank" className="mkbhd-card group flex flex-col bg-white/[0.01] overflow-hidden border-white/10 rounded-[2rem] shadow-2xl flex-shrink-0 w-72">
                             <div className="h-44 relative overflow-hidden bg-mkbhd-black">
                               <img src={n.images?.[0]?.url} className="w-full h-full object-cover grayscale opacity-60 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700 group-hover:scale-105" alt={n.headline} onError={(e: any) => { e.target.style.display = 'none'; }} />
                               <div className="absolute inset-0 bg-gradient-to-t from-mkbhd-black via-transparent to-transparent opacity-80" />
@@ -1027,17 +1287,24 @@ export default function App() {
       </footer>
 
       {/* --- Modals --- */}
-      <CareerModal isOpen={!!careerProfile} onClose={() => setCareerProfile(null)} type={careerProfile?.type} id={careerProfile?.id} />
-      
       <StudioModal isOpen={activeModal === 'standings'} onClose={() => setActiveModal(null)} title="World Championship Archive">
          <div className="grid grid-cols-1 xl:grid-cols-2 gap-24">
             {[ { title: 'Drivers', data: idleData?.driver_standings, type: 'driver' }, { title: 'Constructors', data: idleData?.constructor_standings, type: 'constructor' } ].map((section) => (
               <div key={section.title} className="space-y-12">
                  <h3 className="text-4xl font-black italic flex items-center gap-8 text-white uppercase tracking-tighter"><Trophy size={40} className="text-mkbhd-red" /> {section.title}</h3>
                  <div className="mkbhd-card p-6 bg-white/[0.01] border-white/10 rounded-[3rem] shadow-2xl">
-                    <table className="w-full text-left">
+                    <table className="w-full">
+                       <colgroup>
+                         <col className="w-20" />
+                         <col />
+                         <col className="w-32" />
+                       </colgroup>
                        <thead className="text-[12px] font-black text-mkbhd-gray uppercase border-b border-white/10">
-                          <tr><th className="p-8">POS</th><th className="p-8">Entity</th><th className="p-8 text-right">Points</th></tr>
+                          <tr>
+                            <th className="px-6 py-5 text-left">POS</th>
+                            <th className="px-6 py-5 text-left">Driver</th>
+                            <th className="px-6 py-5 text-right">Points</th>
+                          </tr>
                        </thead>
                        <tbody className="text-lg">
                           {section.data?.map((s: any) => {
@@ -1045,19 +1312,19 @@ export default function App() {
                              const teamId = section.type === 'driver' ? s.Constructors[0].constructorId : entityId;
                              return (
                                <tr key={entityId} onClick={() => setCareerProfile({ type: section.type, id: entityId })} className="border-b border-white/[0.03] hover:bg-white/[0.05] cursor-pointer transition-all group">
-                                  <td className="p-8 font-black italic text-4xl text-white/10 group-hover:text-mkbhd-red transition-colors">{s.position}</td>
-                                  <td className="p-8 uppercase italic font-bold">
-                                    <div className="flex items-center gap-6">
-                                      <div className="w-14 h-14">
+                                  <td className="px-6 py-5 font-black italic text-3xl text-white/20 group-hover:text-mkbhd-red transition-colors align-middle">{s.position}</td>
+                                  <td className="px-6 py-5 align-middle">
+                                    <div className="flex items-center gap-5">
+                                      <div className="w-12 h-12 shrink-0">
                                         <TeamLogo teamId={teamId} className="w-full h-full" />
                                       </div>
                                       <div>
-                                        <div className="text-3xl group-hover:text-mkbhd-red group-hover:translate-x-2 transition-all duration-300">{section.type === 'driver' ? s.Driver.familyName : s.Constructor.name}</div>
-                                        <div className="text-[12px] font-black text-mkbhd-gray uppercase tracking-[0.4em] mt-3">{section.type === 'driver' ? s.Driver.nationality : s.Constructor.nationality}</div>
+                                        <div className="text-2xl font-black italic uppercase group-hover:text-mkbhd-red group-hover:translate-x-1 transition-all duration-200">{section.type === 'driver' ? s.Driver.familyName : s.Constructor.name}</div>
+                                        <div className="text-[11px] font-black text-mkbhd-gray uppercase tracking-[0.4em] mt-1">{section.type === 'driver' ? s.Driver.nationality : s.Constructor.nationality}</div>
                                       </div>
                                     </div>
                                   </td>
-                                  <td className="p-8 text-right font-black italic text-4xl text-white group-hover:scale-110 transition-transform">{s.points}</td>
+                                  <td className="px-6 py-5 text-right font-black italic text-3xl text-white align-middle">{s.points}</td>
                                </tr>
                              );
                           })}
@@ -1146,7 +1413,9 @@ export default function App() {
         })()}
       </StudioModal>
 
-      <CircuitDetailsModal isOpen={!!selectedCircuit} onClose={() => setSelectedCircuit(null)} circuit={selectedCircuit} />
+      <CircuitDetailsModal isOpen={!!selectedCircuit} onClose={() => setSelectedCircuit(null)} circuit={selectedCircuit} onDriverClick={(driverId: string) => setCareerProfile({ type: 'driver', id: driverId })} />
+      {/* CareerModal last so it renders above all other modals */}
+      <CareerModal isOpen={!!careerProfile} onClose={() => setCareerProfile(null)} type={careerProfile?.type} id={careerProfile?.id} />
     </div>
   );
 }
