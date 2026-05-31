@@ -31,9 +31,6 @@ Two tabs per circuit:
 - Race, Qualifying, Sprint → Jolpica-F1 API
 - FP1 / FP2 / FP3 → OpenF1 (2023+ only; tabs hidden for earlier years or when no data)
 
-### Splash Screen
-Animated F1 logo on load — pulses while data initialises, then expands full-screen and dissolves into the dashboard.
-
 ---
 
 ## Stack
