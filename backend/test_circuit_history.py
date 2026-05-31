@@ -58,6 +58,7 @@ def test_circuit_endpoint_returns_available_years():
     assert response.status_code == 200
     body = response.json()
     assert "available_years" in body
-    assert 2026 not in body["available_years"]  # only completed seasons (excludes current_season 2026)
-    assert 2025 in body["available_years"]       # always includes last completed season
+    assert 2026 not in body["available_years"]  # 2025 is last completed season; 2026 (current) is excluded
+    assert 2025 in body["available_years"]       # 2025 is last completed season; 2026 (current) is excluded
     assert body["available_years"][0] == CIRCUIT_REDESIGN_YEAR["silverstone"]
+    assert body["available_years"][-1] == 2025  # last entry is always last completed season
