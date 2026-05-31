@@ -115,37 +115,3 @@ f1-dashboard/
 | GET | `/api/live-data` | Live telemetry + intervals. `?session_key=N` |
 | GET | `/api/location` | Latest driver positions. `?session_key=N` |
 
----
-
-## Deployment
-
-### Frontend → Vercel (recommended, free)
-
-1. Import `https://github.com/HrishiGodina/f1-bob-box` in [vercel.com/new](https://vercel.com/new)
-2. Set **Root Directory** to `frontend`
-3. Framework preset: **Vite** (auto-detected)
-4. Add environment variable: `VITE_API_BASE=https://your-backend.railway.app/api`
-5. Deploy — Vercel handles the rest
-
-### Backend → Railway (free tier)
-
-1. New project → **Deploy from GitHub repo**
-2. Set **Root Directory** to `backend`
-3. Start command: `uvicorn main:app --host 0.0.0.0 --port $PORT`
-4. Copy the generated domain, paste it as `VITE_API_BASE` in Vercel
-
-> The frontend currently hardcodes `http://localhost:8000/api`. To use the env var, change the `API_BASE` constant in `frontend/src/App.tsx` line 17 to:
-> ```ts
-> const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8000/api";
-> ```
-
----
-
-## Tests
-
-```bash
-cd backend
-source venv/bin/activate
-pip install respx pytest-asyncio
-pytest test_circuit_history.py -v
-```
