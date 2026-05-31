@@ -379,7 +379,7 @@ async def get_circuit_details(circuit_id: str, season: int = 2026):
 
             # 3. Available years (redesign year → season-1, i.e. completed seasons before requested)
             start_year = CIRCUIT_REDESIGN_YEAR.get(circuit_id, current_season - DEFAULT_HISTORY_WINDOW)
-            available_years = list(range(start_year, season))  # excludes the requested season itself
+            available_years = list(range(start_year, current_season))  # excludes current_season
 
             # 4. Stats (mocked per circuit)
             corners = 19
