@@ -100,38 +100,48 @@ async def get_status(mock: bool = False):
         async with httpx.AsyncClient() as client:
             # Get the latest session
             response = await client.get(f"{OPENF1_BASE_URL}/sessions?session_key=latest")
+
+            # OpenF1 returns 402 during live sessions for unauthenticated users.
+            # A 402 means a session IS live — we just can't read data without an API key.
+            if response.status_code == 402:
+                return {
+                    "is_live": True,
+                    "no_api_access": True,
+                    "session_name": "Live Session",
+                    "session_type": None,
+                    "session_key": None,
+                }
+
             response.raise_for_status()
             sessions = response.json()
-            
+
             if not sessions:
                 return {"is_live": False, "message": "No session data found"}
 
             latest_session = sessions[0]
             start_time_str = latest_session.get("date_start")
             end_time_str = latest_session.get("date_end")
-            
+
             if not start_time_str:
                 return {"is_live": False, "message": "Session start time missing"}
 
-            # OpenF1 returns ISO format: 2024-03-02T15:00:00
-            # We assume it's UTC or has offset
             start_time = datetime.fromisoformat(start_time_str.replace("Z", "+00:00"))
-            
-            # If end_time is missing, assume it lasts 2 hours for now
+
             if end_time_str:
                 end_time = datetime.fromisoformat(end_time_str.replace("Z", "+00:00"))
             else:
                 end_time = start_time + timedelta(hours=2)
 
             now = datetime.now(IST)
-            
+
             live_start = start_time - timedelta(minutes=30)
             live_end = end_time + timedelta(minutes=30)
-            
+
             is_live = live_start <= now <= live_end
-            
+
             return {
                 "is_live": is_live,
+                "no_api_access": False,
                 "session_type": latest_session.get("session_type"),
                 "session_name": latest_session.get("session_name"),
                 "session_key": latest_session.get("session_key"),
@@ -141,7 +151,6 @@ async def get_status(mock: bool = False):
                 "now": now.isoformat()
             }
     except Exception as e:
-        # Fallback if API is down
         return {"is_live": False, "error": str(e)}
 
 @app.get("/api/idle-data")
@@ -220,30 +229,34 @@ async def get_live_data(session_key: int, driver_number: Optional[int] = None):
     """
     try:
         async with httpx.AsyncClient() as client:
-            # 1. Fetch Leaderboard (Intervals) - Get latest intervals for all drivers
+            # 1. Fetch Leaderboard (Intervals)
             intervals_resp = await client.get(f"{OPENF1_BASE_URL}/intervals?session_key={session_key}")
+            if intervals_resp.status_code == 402:
+                raise HTTPException(status_code=402, detail="OpenF1 API requires authentication during live sessions.")
             intervals = intervals_resp.json()
 
             # 2. Fetch Driver Positions
             pos_resp = await client.get(f"{OPENF1_BASE_URL}/position?session_key={session_key}")
             positions = pos_resp.json()
 
-            # 3. Fetch Car Data (Telemetry) for a specific driver if provided, else maybe top 3
+            # 3. Fetch Car Data (Telemetry) for a specific driver if provided
             telemetry = []
             if driver_number:
                 tel_resp = await client.get(f"{OPENF1_BASE_URL}/car_data?session_key={session_key}&driver_number={driver_number}")
-                telemetry = tel_resp.json()[-50:] # Last 50 points for a small trace
-            
+                telemetry = tel_resp.json()[-50:]
+
             # 4. Fetch Driver Info (to map driver numbers to names)
             drivers_resp = await client.get(f"{OPENF1_BASE_URL}/drivers?session_key={session_key}")
             drivers = drivers_resp.json()
 
             return {
-                "intervals": intervals[-20:] if intervals else [], # Latest intervals
-                "positions": positions[-20:] if positions else [], # Latest positions
+                "intervals": intervals[-20:] if intervals else [],
+                "positions": positions[-20:] if positions else [],
                 "telemetry": telemetry,
                 "drivers": {d["driver_number"]: d for d in drivers}
             }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

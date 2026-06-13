@@ -22,6 +22,7 @@ import interlagos from './interlagos.json';
 import las_vegas from './las_vegas.json';
 import losail from './losail.json';
 import yas_marina from './yas_marina.json';
+import madring from './madring.json';
 
 export const CIRCUIT_GEOJSON: Record<string, any> = {
   bahrain,
@@ -48,4 +49,5 @@ export const CIRCUIT_GEOJSON: Record<string, any> = {
   las_vegas,
   losail,
   yas_marina,
+  madring,
 };

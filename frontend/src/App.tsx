@@ -194,7 +194,8 @@ const CIRCUIT_ID_MAP: Record<string, string> = {
   hungaroring: 'hungaroring', spa: 'spa', zandvoort: 'zandvoort',
   monza: 'monza', baku: 'baku', marina_bay: 'marina_bay',
   americas: 'americas', rodriguez: 'rodriguez', interlagos: 'interlagos',
-  las_vegas: 'las_vegas', losail: 'losail', yas_marina: 'yas_marina',
+  las_vegas: 'las_vegas', vegas: 'las_vegas', losail: 'losail', yas_marina: 'yas_marina',
+  madring: 'madring',
 };
 
 const geoJsonToSvgPath = (geojson: any, w = 440, h = 310, pad = 24): string => {
@@ -695,7 +696,7 @@ const CareerModal = ({ isOpen, onClose, type, id }: any) => {
   );
 };
 
-// --- Mock data for LiveDashboard simulation ---
+// --- Mock data for LiveDashboard simulation (disconnected, keep for testing) ---
 
 const MOCK_DRIVERS = [
   { driver_number: 1,  full_name: 'Max Verstappen',    name_acronym: 'VER', team_name: 'red_bull' },
@@ -720,7 +721,7 @@ const MOCK_DRIVERS = [
   { driver_number: 11, full_name: 'Sergio Perez',      name_acronym: 'PER', team_name: 'red_bull' },
 ];
 
-const buildMockLiveData = (tick: number) => {
+const _buildMockLiveData = (tick: number) => {
   const t = tick * 0.15;
   const speed = Math.round(220 + Math.sin(t) * 120);
   const rpm = Math.round(8500 + Math.sin(t * 1.3) * 3000);
@@ -736,7 +737,7 @@ const buildMockLiveData = (tick: number) => {
   return { intervals, drivers: driversMap, telemetry: [telPoint], throttle, brake, speed, rpm, n_gear: gear };
 };
 
-const buildMockLocations = (tick: number) => {
+const _buildMockLocations = (tick: number) => {
   return MOCK_DRIVERS.map((d, i) => {
     const angle = (tick * 0.04 + (i / MOCK_DRIVERS.length) * Math.PI * 2);
     return {
@@ -747,29 +748,18 @@ const buildMockLocations = (tick: number) => {
   });
 };
 
+// Exported so TypeScript doesn't strip these during dead-code analysis
+export const __mockHelpers = { MOCK_DRIVERS, _buildMockLiveData, _buildMockLocations };
+
 // --- View Components ---
 
-const LiveDashboard = ({ status, useMock }: any) => {
+const LiveDashboard = ({ status }: any) => {
   const [liveData, setLiveData] = useState<any>(null);
   const [locations, setLocations] = useState<any[]>([]);
   const [selectedDriver, setSelectedDriver] = useState<number | null>(null);
-  const mockTickRef = { current: 0 };
 
   useEffect(() => {
-    if (useMock) {
-      const run = () => {
-        mockTickRef.current += 1;
-        const md = buildMockLiveData(mockTickRef.current);
-        setLiveData((prev: any) => ({
-          ...md,
-          telemetry: [...(prev?.telemetry?.slice(-49) || []), md.telemetry[0]],
-        }));
-        setLocations(buildMockLocations(mockTickRef.current));
-      };
-      run();
-      const interval = setInterval(run, 500);
-      return () => clearInterval(interval);
-    }
+    if (status.no_api_access) return;
     const fetchData = async () => {
       try {
         const [liveRes, locRes] = await Promise.all([
@@ -783,9 +773,32 @@ const LiveDashboard = ({ status, useMock }: any) => {
     fetchData();
     const interval = setInterval(fetchData, 2000);
     return () => clearInterval(interval);
-  }, [status.session_key, selectedDriver, useMock]);
+  }, [status.session_key, selectedDriver, status.no_api_access]);
 
   const latestTel = liveData?.telemetry?.[liveData.telemetry.length - 1] || { speed: 0, rpm: 0, n_gear: 0, throttle: 0, brake: 0 };
+
+  if (status.no_api_access) {
+    return (
+      <div className="space-y-12" id="live-dashboard">
+        <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-12 pb-12 border-b border-white/5">
+          <motion.div initial={{ x: -20, opacity: 0 }} animate={{ opacity: 1, x: 0 }}>
+            <div className="text-mkbhd-red font-black uppercase tracking-[0.5em] mb-4 text-xs flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-mkbhd-red animate-pulse" /> Live Session Detected
+            </div>
+            <h1 className="text-7xl md:text-[10rem] tracking-tight leading-none">ON AIR</h1>
+          </motion.div>
+        </header>
+        <div className="mkbhd-card p-16 flex flex-col items-center justify-center gap-8 text-center min-h-[400px] bg-white/[0.01]">
+          <div className="w-4 h-4 rounded-full bg-mkbhd-red animate-pulse" />
+          <div className="text-2xl font-black uppercase tracking-widest">Live Data Restricted</div>
+          <div className="text-mkbhd-gray text-sm max-w-md leading-relaxed">
+            OpenF1 restricts unauthenticated API access during live sessions. Live telemetry, intervals, and driver positions are unavailable without an API key.
+          </div>
+          <div className="text-[10px] font-mono text-white/20 uppercase tracking-widest">openf1.org // authenticated access required</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-12" id="live-dashboard">
@@ -942,7 +955,6 @@ export default function App() {
     schedule: [],
     next_race: { raceName: "Loading Grand Prix", Circuit: { circuitName: "Scanning..." }, date: "TBD" }
   });
-  const [useMock, setUseMock] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const [standingsType, setStandingsType] = useState<'drivers' | 'teams'>('drivers');
@@ -952,7 +964,7 @@ export default function App() {
 
   const fetchStatus = async () => {
     try {
-      const res = await axios.get(`${API_BASE}/status?mock=${useMock}`);
+      const res = await axios.get(`${API_BASE}/status`);
       if (res.data) setStatus(res.data);
       
       // Always fetch idle data if it's empty or hasn't been fetched
@@ -977,7 +989,7 @@ export default function App() {
     fetchStatus();
     const interval = setInterval(fetchStatus, 30000);
     return () => clearInterval(interval);
-  }, [useMock]);
+  }, []);
 
   // Splash: 'logo' (pulse 1.8s) → 'expand' (scale to fill, 0.6s) → 'done'
   const [splashPhase, setSplashPhase] = useState<'logo' | 'expand' | 'done'>(loading ? 'logo' : 'done');
@@ -1054,13 +1066,6 @@ export default function App() {
               <div className={`w-2 h-2 rounded-full ${status?.is_live ? 'bg-white shadow-[0_0_10px_white]' : 'bg-mkbhd-gray'}`} />
               {status?.is_live ? 'LIVE SESSION' : 'OFFLINE'}
             </motion.div>
-            <button 
-              onClick={() => setUseMock(!useMock)} 
-              className={`p-3 rounded-xl border transition-all ${useMock ? 'bg-mkbhd-red text-white border-mkbhd-red shadow-[0_0_30px_rgba(204,0,0,0.3)]' : 'bg-white/5 border-white/10 text-mkbhd-gray hover:text-white hover:border-white/40'}`}
-              title="Toggle Studio Simulation"
-            >
-              <Zap size={20} fill={useMock ? "white" : "none"} />
-            </button>
             <button className="lg:hidden p-3 bg-white/5 rounded-xl text-white" onClick={() => setMobileMenuOpen(true)}><Menu size={24} /></button>
           </div>
         </div>
@@ -1082,7 +1087,7 @@ export default function App() {
         <AnimatePresence mode="wait">
           {status?.is_live ? (
             <motion.div key="live" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
-               <LiveDashboard status={status} useMock={useMock} />
+               <LiveDashboard status={status} />
             </motion.div>
           ) : (
             <motion.div key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-24">
