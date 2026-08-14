@@ -2,8 +2,12 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import httpx
 import asyncio
+import os
 from datetime import datetime, timedelta, timezone
 from typing import Optional
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = FastAPI(title="F1 Dashboard API")
 
@@ -20,8 +24,61 @@ app.add_middleware(
 )
 
 OPENF1_BASE_URL = "https://api.openf1.org/v1"
+OPENF1_TOKEN_URL = "https://api.openf1.org/token"
 JOLPICA_BASE_URL = "https://api.jolpi.ca/ergast/f1"
 ESPN_NEWS_URL = "https://site.api.espn.com/apis/site/v2/sports/racing/f1/news"
+
+# OpenF1 sponsor credentials for live-session data. Unset by default — leaving
+# these blank preserves today's unauthenticated behavior (free/historical data
+# works, live data 402s and is handled gracefully). Set OPENF1_USERNAME and
+# OPENF1_PASSWORD in backend/.env once sponsor credentials are available.
+OPENF1_USERNAME = os.environ.get("OPENF1_USERNAME")
+OPENF1_PASSWORD = os.environ.get("OPENF1_PASSWORD")
+
+_openf1_token_cache = {"access_token": None, "expires_at": None}
+_openf1_token_lock = asyncio.Lock()
+
+
+async def get_openf1_headers() -> dict:
+    """
+    Returns an Authorization header for OpenF1 requests when sponsor
+    credentials are configured, otherwise an empty dict (today's behavior).
+    Fetches and caches an OAuth2 bearer token, refreshing shortly before it
+    expires. Never raises — any failure to authenticate just falls back to
+    unauthenticated requests so live-session 402 handling still applies.
+    """
+    if not OPENF1_USERNAME or not OPENF1_PASSWORD:
+        return {}
+
+    async with _openf1_token_lock:
+        now = datetime.now(timezone.utc)
+        if (
+            _openf1_token_cache["access_token"]
+            and _openf1_token_cache["expires_at"]
+            and now < _openf1_token_cache["expires_at"]
+        ):
+            return {"Authorization": f"Bearer {_openf1_token_cache['access_token']}"}
+
+        try:
+            async with httpx.AsyncClient() as client:
+                resp = await client.post(
+                    OPENF1_TOKEN_URL,
+                    data={"username": OPENF1_USERNAME, "password": OPENF1_PASSWORD},
+                    headers={"Content-Type": "application/x-www-form-urlencoded"},
+                )
+                resp.raise_for_status()
+                token_data = resp.json()
+                access_token = token_data.get("access_token")
+                expires_in = int(token_data.get("expires_in", 3600))
+
+                if not access_token:
+                    return {}
+
+                _openf1_token_cache["access_token"] = access_token
+                _openf1_token_cache["expires_at"] = now + timedelta(seconds=expires_in - 60)
+                return {"Authorization": f"Bearer {access_token}"}
+        except Exception:
+            return {}
 
 CIRCUIT_REDESIGN_YEAR = {
     "silverstone": 2010,
@@ -97,9 +154,10 @@ async def get_status(mock: bool = False):
         }
 
     try:
+        openf1_headers = await get_openf1_headers()
         async with httpx.AsyncClient() as client:
             # Get the latest session
-            response = await client.get(f"{OPENF1_BASE_URL}/sessions?session_key=latest")
+            response = await client.get(f"{OPENF1_BASE_URL}/sessions?session_key=latest", headers=openf1_headers)
 
             # OpenF1 returns 402 during live sessions for unauthenticated users.
             # A 402 means a session IS live — we just can't read data without an API key.
@@ -228,25 +286,26 @@ async def get_live_data(session_key: int, driver_number: Optional[int] = None):
     Fetches live telemetry and interval data for a session.
     """
     try:
+        openf1_headers = await get_openf1_headers()
         async with httpx.AsyncClient() as client:
             # 1. Fetch Leaderboard (Intervals)
-            intervals_resp = await client.get(f"{OPENF1_BASE_URL}/intervals?session_key={session_key}")
+            intervals_resp = await client.get(f"{OPENF1_BASE_URL}/intervals?session_key={session_key}", headers=openf1_headers)
             if intervals_resp.status_code == 402:
                 raise HTTPException(status_code=402, detail="OpenF1 API requires authentication during live sessions.")
             intervals = intervals_resp.json()
 
             # 2. Fetch Driver Positions
-            pos_resp = await client.get(f"{OPENF1_BASE_URL}/position?session_key={session_key}")
+            pos_resp = await client.get(f"{OPENF1_BASE_URL}/position?session_key={session_key}", headers=openf1_headers)
             positions = pos_resp.json()
 
             # 3. Fetch Car Data (Telemetry) for a specific driver if provided
             telemetry = []
             if driver_number:
-                tel_resp = await client.get(f"{OPENF1_BASE_URL}/car_data?session_key={session_key}&driver_number={driver_number}")
+                tel_resp = await client.get(f"{OPENF1_BASE_URL}/car_data?session_key={session_key}&driver_number={driver_number}", headers=openf1_headers)
                 telemetry = tel_resp.json()[-50:]
 
             # 4. Fetch Driver Info (to map driver numbers to names)
-            drivers_resp = await client.get(f"{OPENF1_BASE_URL}/drivers?session_key={session_key}")
+            drivers_resp = await client.get(f"{OPENF1_BASE_URL}/drivers?session_key={session_key}", headers=openf1_headers)
             drivers = drivers_resp.json()
 
             return {
@@ -266,8 +325,9 @@ async def get_location(session_key: int):
     Fetches the latest locations for all drivers.
     """
     try:
+        openf1_headers = await get_openf1_headers()
         async with httpx.AsyncClient() as client:
-            resp = await client.get(f"{OPENF1_BASE_URL}/location?session_key={session_key}")
+            resp = await client.get(f"{OPENF1_BASE_URL}/location?session_key={session_key}", headers=openf1_headers)
             locations = resp.json()
             # Return only the latest location for each driver to reduce payload
             latest_locs = {}
