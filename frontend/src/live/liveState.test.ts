@@ -1,5 +1,30 @@
 import { describe, expect, it } from "vitest";
-import { INITIAL_LIVE_STATE, applyLivePatch, deriveWsUrl } from "./liveState";
+import { INITIAL_LIVE_STATE, applyLivePatch, computeSessionBests, deriveWsUrl, parseLapTime } from "./liveState";
+import type { DriverInfo, TimingLine } from "./types";
+
+function mkLine(overrides: Partial<TimingLine> = {}): TimingLine {
+  return {
+    position: null,
+    gap_to_leader: null,
+    interval: null,
+    catching: false,
+    sectors: [],
+    last_lap: {},
+    best_lap: {},
+    tyre_compound: null,
+    tyre_is_new: null,
+    stint_laps: null,
+    pit_count: null,
+    in_pit: false,
+    retired: false,
+    personal_best_lap: null,
+    ...overrides,
+  };
+}
+
+function mkDriver(tla: string): DriverInfo {
+  return { racing_number: "0", tla, full_name: null, team_name: null, team_colour: null, line: null };
+}
 
 describe("applyLivePatch", () => {
   it("merges a patch key in without disturbing other keys", () => {
@@ -42,5 +67,54 @@ describe("deriveWsUrl", () => {
 
   it("tolerates a trailing slash on the API base", () => {
     expect(deriveWsUrl("http://localhost:8000/api/")).toBe("ws://localhost:8000/ws/live");
+  });
+});
+
+describe("parseLapTime", () => {
+  it("parses a minutes:seconds lap time to seconds", () => {
+    expect(parseLapTime("1:18.223")).toBeCloseTo(78.223, 3);
+  });
+
+  it("parses a bare seconds sector time", () => {
+    expect(parseLapTime("28.312")).toBeCloseTo(28.312, 3);
+  });
+
+  it("returns null for empty, missing, or malformed input", () => {
+    expect(parseLapTime("")).toBeNull();
+    expect(parseLapTime("   ")).toBeNull();
+    expect(parseLapTime(null)).toBeNull();
+    expect(parseLapTime(undefined)).toBeNull();
+    expect(parseLapTime("abc")).toBeNull();
+    expect(parseLapTime("1::23")).toBeNull();
+  });
+});
+
+describe("computeSessionBests", () => {
+  const drivers = { "1": mkDriver("VER"), "44": mkDriver("HAM"), "16": mkDriver("LEC") };
+
+  it("returns nulls when there is no timing data", () => {
+    expect(computeSessionBests({}, {})).toEqual({ fastestLap: null, fastestPace: null });
+  });
+
+  it("picks the session's fastest lap, falling back to personal best when no BestLapTime", () => {
+    const timing = {
+      "1": mkLine({ best_lap: { Value: "1:18.500" }, last_lap: { Value: "1:19.000" } }),
+      "44": mkLine({ best_lap: { Value: "1:18.200" }, last_lap: { Value: "1:18.900" } }),
+      "16": mkLine({ personal_best_lap: { Value: "1:18.100" }, last_lap: { Value: "1:18.800" } }),
+    };
+    const { fastestLap } = computeSessionBests(timing, drivers);
+    expect(fastestLap?.tla).toBe("LEC");
+    expect(fastestLap?.time).toBe("1:18.100");
+  });
+
+  it("picks fastest pace from the most recent lap and ignores retired cars", () => {
+    const timing = {
+      "1": mkLine({ last_lap: { Value: "1:19.000" } }),
+      "44": mkLine({ last_lap: { Value: "1:18.900" } }),
+      "16": mkLine({ last_lap: { Value: "1:18.100" }, retired: true }),
+    };
+    const { fastestPace } = computeSessionBests(timing, drivers);
+    expect(fastestPace?.tla).toBe("HAM");
+    expect(fastestPace?.time).toBe("1:18.900");
   });
 });

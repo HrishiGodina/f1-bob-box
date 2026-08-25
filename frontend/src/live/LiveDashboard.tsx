@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { useLiveTimingSocket } from "./useLiveTimingSocket";
+import { computeSessionBests } from "./liveState";
+import { SessionBests } from "./SessionBests";
 import { TimingTower } from "./TimingTower";
 import { TrackMap } from "./TrackMap";
 import { RaceControlFeed } from "./RaceControlFeed";
@@ -13,6 +15,19 @@ export function LiveDashboard() {
   const sessionName = snapshot.session_info.Meeting?.Name ?? "ON AIR";
   const isReconnecting = snapshot.connection_status === "reconnecting";
   const showFeedNotice = snapshot.connection_status !== "connected";
+
+  const bests = useMemo(
+    () => computeSessionBests(snapshot.timing, snapshot.drivers),
+    [snapshot.timing, snapshot.drivers]
+  );
+
+  // The current leader is whoever holds P1 in the timing map — derived, not
+  // tracked separately.
+  const leaderTla = useMemo(() => {
+    const leader = Object.entries(snapshot.timing).find(([, line]) => line.position === "1");
+    if (!leader) return null;
+    return snapshot.drivers[leader[0]]?.tla ?? `#${leader[0]}`;
+  }, [snapshot.timing, snapshot.drivers]);
 
   return (
     <div className="space-y-12" id="live-dashboard">
@@ -30,24 +45,28 @@ export function LiveDashboard() {
         )}
       </header>
 
+      <SessionBests bests={bests} leaderTla={leaderTla} trackStatus={snapshot.track_status} />
+
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-        <div className="lg:col-span-3">
+        <div className="lg:col-span-8">
           <TimingTower
             drivers={snapshot.drivers}
             timing={snapshot.timing}
             selectedDriver={selectedDriver}
             onSelectDriver={setSelectedDriver}
+            fastestLapDriver={bests.fastestLap?.racingNumber ?? null}
+            fastestPaceDriver={bests.fastestPace?.racingNumber ?? null}
           />
         </div>
 
-        <div className="lg:col-span-9 space-y-10" id="telemetry">
-          <DriverTelemetryPanel drivers={snapshot.drivers} telemetry={snapshot.telemetry} selectedDriver={selectedDriver} />
-
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-10">
-            <TrackMap drivers={snapshot.drivers} positions={snapshot.positions} selectedDriver={selectedDriver} />
-            <RaceControlFeed messages={snapshot.race_control} />
-          </div>
+        <div className="lg:col-span-4 space-y-10">
+          <TrackMap drivers={snapshot.drivers} positions={snapshot.positions} selectedDriver={selectedDriver} />
+          <RaceControlFeed messages={snapshot.race_control} />
         </div>
+      </div>
+
+      <div id="telemetry">
+        <DriverTelemetryPanel drivers={snapshot.drivers} telemetry={snapshot.telemetry} selectedDriver={selectedDriver} />
       </div>
     </div>
   );
