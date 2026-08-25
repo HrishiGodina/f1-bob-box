@@ -9,11 +9,11 @@ A personal Formula 1 strategy dashboard — live telemetry during race sessions,
 ## Features
 
 ### Live Session
-- Real-time leaderboard pulled from OpenF1
-- Telemetry gauges — speed, RPM, gear
-- Throttle / brake bar traces
-- Driver position dot map on SVG grid
-- Mock simulation mode (⚡ toggle in navbar) — 20-driver fixture with cycling telemetry, no backend required
+- Live timing tower — position, gap/interval, sector times with personal/session-best coloring, tyre compound + stint, pit stop count
+- Live track map — every car's position, color-coded, highlights the selected driver
+- Race control message feed — flags, safety car/VSC, investigations
+- Per-driver telemetry gauges — speed, RPM, gear, throttle/brake for whichever driver is selected
+- Own direct client for F1's live timing feed (`livetiming.formula1.com`, SignalR) — no credentials, no third-party API
 
 ### Idle Dashboard
 - **World Championship** — driver and constructor standings with career profile modal
@@ -106,12 +106,11 @@ f1-dashboard/
 
 | Method | Path | Description |
 |---|---|---|
-| GET | `/api/status` | Live session check. `?mock=true` for simulation |
+| GET | `/api/status` | Live session check |
 | GET | `/api/idle-data` | Standings, schedule, next race, news |
 | GET | `/api/circuit/{id}` | Circuit info + historical results. `?season=N` |
 | GET | `/api/race-weekend/{id}` | Session results. `?year=N&session=race\|quali\|sprint\|fp1\|fp2\|fp3` |
 | GET | `/api/driver/{id}/stats` | Driver career stats |
 | GET | `/api/constructor/{id}/stats` | Constructor career stats |
-| GET | `/api/live-data` | Live telemetry + intervals. `?session_key=N` |
-| GET | `/api/location` | Latest driver positions. `?session_key=N` |
+| WS | `/ws/live` | Live timing feed — full snapshot on connect, then incremental patches (see the live-timing spec under `docs/superpowers/specs/`) |
 

@@ -1,18 +1,19 @@
 import { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import {
-  Trophy, Newspaper, Zap, MapPin, List, X,
-  TrendingUp, Activity, Flag,
-  User, Menu, ChevronRight, Monitor, Play, Eye, Users
+  Trophy, Newspaper, Zap, MapPin, X,
+  Activity, Flag,
+  User, Menu, ChevronRight, Play, Eye, Users
 } from 'lucide-react';
 import {
-  AreaChart, Area, YAxis, Tooltip, ResponsiveContainer
+  AreaChart, Area, YAxis, ResponsiveContainer
 } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
 import "@fontsource/inter/400.css";
 import "@fontsource/inter/700.css";
 import "@fontsource/inter/900.css";
 import { CIRCUIT_GEOJSON } from './circuits/index';
+import { LiveDashboard } from './live/LiveDashboard';
 
 const API_BASE = (import.meta as any).env?.VITE_API_BASE ?? "http://localhost:8000/api";
 
@@ -92,95 +93,6 @@ const StudioModal = ({ isOpen, onClose, title, children }: any) => {
       </div>
     )}
   </AnimatePresence>
-  );
-};
-
-const CircularGauge = ({ value, max, label, color, unit }: { value: number, max: number, label: string, color: string, unit: string }) => {
-  const percentage = Math.min((value / max) * 100, 100);
-  const radius = 50;
-  const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference - (percentage / 100) * circumference;
-
-  return (
-    <div className="flex flex-col items-center justify-center p-10 mkbhd-card bg-white/[0.01]">
-      <div className="relative w-40 h-40 flex items-center justify-center">
-        <svg className="w-full h-full -rotate-90">
-          <circle cx="80" cy="80" r={radius} stroke="rgba(255,255,255,0.05)" strokeWidth="4" fill="transparent" />
-          <motion.circle 
-            cx="80" cy="80" r={radius} stroke={color} strokeWidth="4" fill="transparent"
-            strokeDasharray={circumference}
-            animate={{ strokeDashoffset }}
-            transition={{ duration: 0.8, ease: "circOut" }}
-            strokeLinecap="round"
-          />
-        </svg>
-        <div className="absolute text-center">
-          <div className="text-4xl font-black italic">{value}</div>
-          <div className="text-[10px] font-bold text-mkbhd-gray uppercase tracking-widest">{unit}</div>
-        </div>
-      </div>
-      <div className="mt-6 text-[10px] font-black uppercase tracking-[0.4em] text-mkbhd-gray">{label}</div>
-    </div>
-  );
-};
-
-const TrackMap = ({ locations, selectedDriver }: any) => {
-  const points = useMemo(() => {
-    if (!locations?.length) return [];
-    const xVals = locations.map((l: any) => l.x);
-    const yVals = locations.map((l: any) => l.y);
-    const minX = Math.min(...xVals);
-    const maxX = Math.max(...xVals);
-    const minY = Math.min(...yVals);
-    const maxY = Math.max(...yVals);
-    const rangeX = maxX - minX || 1;
-    const rangeY = maxY - minY || 1;
-    return locations.map((l: any) => ({
-      ...l,
-      normX: ((l.x - minX) / rangeX) * 360 + 20,
-      normY: ((l.y - minY) / rangeY) * 360 + 20
-    }));
-  }, [locations]);
-
-  return (
-    <div className="mkbhd-card relative w-full aspect-square bg-mkbhd-black p-10 overflow-hidden border-white/5">
-      <div className="flex items-center gap-3 mb-10">
-        <div className="p-2 bg-mkbhd-red rounded-lg text-white"><MapPin size={16} /></div>
-        <h2 className="text-xs font-black uppercase tracking-[0.3em]">Grid Telemetry</h2>
-      </div>
-      <div className="relative w-full h-full border border-white/5 rounded-[2rem] bg-mkbhd-studio/50 backdrop-blur-sm">
-         <svg className="w-full h-full">
-            <defs>
-              <filter id="glow">
-                <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
-                <feMerge>
-                  <feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/>
-                </feMerge>
-              </filter>
-            </defs>
-            {points.map((p: any) => (
-              <motion.g key={p.driver_number} animate={{ x: p.normX, y: p.normY }} transition={{ duration: 1, ease: "linear" }}>
-                <circle 
-                  r={selectedDriver === p.driver_number ? 8 : 4} 
-                  fill={selectedDriver === p.driver_number ? "#cc0000" : "#ffffff"}
-                  filter={selectedDriver === p.driver_number ? "url(#glow)" : ""}
-                  className={selectedDriver === p.driver_number ? "animate-pulse" : ""}
-                />
-                {selectedDriver === p.driver_number && (
-                  <circle r="16" stroke="#cc0000" strokeWidth="1" fill="transparent" className="animate-ping opacity-40" />
-                )}
-                <text y="-12" textAnchor="middle" className="text-[10px] font-black fill-white/40 pointer-events-none uppercase italic">
-                  {p.driver_number}
-                </text>
-              </motion.g>
-            ))}
-         </svg>
-      </div>
-      <div className="absolute bottom-12 right-12 flex items-center gap-6 text-[9px] font-black text-mkbhd-gray uppercase bg-mkbhd-studio/80 px-4 py-2 rounded-full border border-white/10 backdrop-blur-md">
-        <div className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-white" /> TRACK</div>
-        <div className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-mkbhd-red animate-pulse" /> TARGET</div>
-      </div>
-    </div>
   );
 };
 
@@ -696,235 +608,6 @@ const CareerModal = ({ isOpen, onClose, type, id }: any) => {
   );
 };
 
-// --- Mock data for LiveDashboard simulation (disconnected, keep for testing) ---
-
-const MOCK_DRIVERS = [
-  { driver_number: 1,  full_name: 'Max Verstappen',    name_acronym: 'VER', team_name: 'red_bull' },
-  { driver_number: 4,  full_name: 'Lando Norris',      name_acronym: 'NOR', team_name: 'mclaren' },
-  { driver_number: 16, full_name: 'Charles Leclerc',   name_acronym: 'LEC', team_name: 'ferrari' },
-  { driver_number: 63, full_name: 'George Russell',    name_acronym: 'RUS', team_name: 'mercedes' },
-  { driver_number: 44, full_name: 'Lewis Hamilton',    name_acronym: 'HAM', team_name: 'ferrari' },
-  { driver_number: 14, full_name: 'Fernando Alonso',   name_acronym: 'ALO', team_name: 'aston_martin' },
-  { driver_number: 55, full_name: 'Carlos Sainz',      name_acronym: 'SAI', team_name: 'williams' },
-  { driver_number: 81, full_name: 'Oscar Piastri',     name_acronym: 'PIA', team_name: 'mclaren' },
-  { driver_number: 18, full_name: 'Lance Stroll',      name_acronym: 'STR', team_name: 'aston_martin' },
-  { driver_number: 10, full_name: 'Pierre Gasly',      name_acronym: 'GAS', team_name: 'alpine' },
-  { driver_number: 22, full_name: 'Yuki Tsunoda',      name_acronym: 'TSU', team_name: 'rb' },
-  { driver_number: 3,  full_name: 'Daniel Ricciardo',  name_acronym: 'RIC', team_name: 'rb' },
-  { driver_number: 23, full_name: 'Alexander Albon',   name_acronym: 'ALB', team_name: 'williams' },
-  { driver_number: 77, full_name: 'Valtteri Bottas',   name_acronym: 'BOT', team_name: 'sauber' },
-  { driver_number: 24, full_name: 'Zhou Guanyu',       name_acronym: 'ZHO', team_name: 'sauber' },
-  { driver_number: 20, full_name: 'Kevin Magnussen',   name_acronym: 'MAG', team_name: 'haas' },
-  { driver_number: 27, full_name: 'Nico Hülkenberg',   name_acronym: 'HUL', team_name: 'haas' },
-  { driver_number: 2,  full_name: 'Logan Sargeant',    name_acronym: 'SAR', team_name: 'williams' },
-  { driver_number: 31, full_name: 'Esteban Ocon',      name_acronym: 'OCO', team_name: 'alpine' },
-  { driver_number: 11, full_name: 'Sergio Perez',      name_acronym: 'PER', team_name: 'red_bull' },
-];
-
-const _buildMockLiveData = (tick: number) => {
-  const t = tick * 0.15;
-  const speed = Math.round(220 + Math.sin(t) * 120);
-  const rpm = Math.round(8500 + Math.sin(t * 1.3) * 3000);
-  const gear = Math.min(8, Math.max(1, Math.round(4 + Math.sin(t * 0.7) * 3)));
-  const throttle = Math.round(Math.max(0, Math.min(100, 60 + Math.sin(t) * 45)));
-  const brake = Math.round(Math.max(0, Math.min(100, throttle > 60 ? 0 : (100 - throttle) * 0.6)));
-  const driversMap = Object.fromEntries(MOCK_DRIVERS.map(d => [d.driver_number, d]));
-  const intervals = MOCK_DRIVERS.map((d, i) => ({
-    driver_number: d.driver_number,
-    interval: i === 0 ? null : `+${(i * 1.2 + Math.sin(t + i) * 0.3).toFixed(3)}s`,
-  }));
-  const telPoint = { speed, rpm, n_gear: gear, throttle, brake, date: new Date().toISOString() };
-  return { intervals, drivers: driversMap, telemetry: [telPoint], throttle, brake, speed, rpm, n_gear: gear };
-};
-
-const _buildMockLocations = (tick: number) => {
-  return MOCK_DRIVERS.map((d, i) => {
-    const angle = (tick * 0.04 + (i / MOCK_DRIVERS.length) * Math.PI * 2);
-    return {
-      driver_number: d.driver_number,
-      x: Math.cos(angle) * 300 + 400,
-      y: Math.sin(angle) * 200 + 300,
-    };
-  });
-};
-
-// Exported so TypeScript doesn't strip these during dead-code analysis
-export const __mockHelpers = { MOCK_DRIVERS, _buildMockLiveData, _buildMockLocations };
-
-// --- View Components ---
-
-const LiveDashboard = ({ status }: any) => {
-  const [liveData, setLiveData] = useState<any>(null);
-  const [locations, setLocations] = useState<any[]>([]);
-  const [selectedDriver, setSelectedDriver] = useState<number | null>(null);
-
-  useEffect(() => {
-    if (status.no_api_access) return;
-    const fetchData = async () => {
-      try {
-        const [liveRes, locRes] = await Promise.all([
-          axios.get(`${API_BASE}/live-data`, { params: { session_key: status.session_key, driver_number: selectedDriver } }),
-          axios.get(`${API_BASE}/location`, { params: { session_key: status.session_key } })
-        ]);
-        setLiveData(liveRes.data);
-        setLocations(locRes.data);
-      } catch (e) { console.error(e); }
-    };
-    fetchData();
-    const interval = setInterval(fetchData, 2000);
-    return () => clearInterval(interval);
-  }, [status.session_key, selectedDriver, status.no_api_access]);
-
-  const latestTel = liveData?.telemetry?.[liveData.telemetry.length - 1] || { speed: 0, rpm: 0, n_gear: 0, throttle: 0, brake: 0 };
-
-  if (status.no_api_access) {
-    return (
-      <div className="space-y-12" id="live-dashboard">
-        <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-12 pb-12 border-b border-white/5">
-          <motion.div initial={{ x: -20, opacity: 0 }} animate={{ opacity: 1, x: 0 }}>
-            <div className="text-mkbhd-red font-black uppercase tracking-[0.5em] mb-4 text-xs flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-mkbhd-red animate-pulse" /> Live Session Detected
-            </div>
-            <h1 className="text-7xl md:text-[10rem] tracking-tight leading-none">ON AIR</h1>
-          </motion.div>
-        </header>
-        <div className="mkbhd-card p-16 flex flex-col items-center justify-center gap-8 text-center min-h-[400px] bg-white/[0.01]">
-          <div className="w-4 h-4 rounded-full bg-mkbhd-red animate-pulse" />
-          <div className="text-2xl font-black uppercase tracking-widest">Live Data Restricted</div>
-          <div className="text-mkbhd-gray text-sm max-w-md leading-relaxed">
-            OpenF1 restricts unauthenticated API access during live sessions. Live telemetry, intervals, and driver positions are unavailable without an API key.
-          </div>
-          <div className="text-[10px] font-mono text-white/20 uppercase tracking-widest">openf1.org // authenticated access required</div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-12" id="live-dashboard">
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-12 pb-12 border-b border-white/5">
-         <motion.div initial={{ x: -20, opacity: 0 }} animate={{ opacity: 1, x: 0 }}>
-           <div className="text-mkbhd-red font-black uppercase tracking-[0.5em] mb-4 text-xs flex items-center gap-2">
-             <div className="w-2 h-2 rounded-full bg-mkbhd-red animate-pulse" /> Live Satellite Feed
-           </div>
-           <h1 className="text-7xl md:text-[10rem] tracking-tight leading-none">{status?.session_name}</h1>
-         </motion.div>
-         <div className="flex flex-col items-end gap-4">
-           {selectedDriver && (
-              <div className="px-6 py-2 bg-white/5 border border-white/10 rounded-full text-[10px] font-black uppercase tracking-widest text-mkbhd-gray">
-                Tracking Driver: <span className="text-white italic">{liveData?.drivers?.[selectedDriver]?.full_name || selectedDriver}</span>
-              </div>
-           )}
-           <StudioButton className="px-12 py-5 text-xl flex items-center gap-3">
-             <Monitor size={24} /> System Grid
-           </StudioButton>
-         </div>
-      </header>
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-        {/* Sidebar: Leaderboard */}
-        <div className="lg:col-span-3 mkbhd-card p-0 overflow-hidden bg-white/[0.01]">
-          <div className="p-8 border-b border-white/5 bg-mkbhd-red flex justify-between items-center">
-             <span className="font-black uppercase italic tracking-tighter text-lg">Running Order</span>
-             <List size={20} />
-          </div>
-          <div className="p-2 h-[700px] overflow-y-auto custom-scrollbar">
-            <AnimatePresence>
-              {liveData?.intervals?.map((item: any, i: number) => {
-                const driver = liveData?.drivers ? liveData.drivers[item.driver_number] : null;
-                const isSelected = selectedDriver === item.driver_number;
-                return (
-                  <motion.div 
-                    layout key={item.driver_number} onClick={() => setSelectedDriver(item.driver_number)} 
-                    className={`p-6 rounded-2xl cursor-pointer transition-all flex items-center justify-between group ${isSelected ? 'bg-mkbhd-red/20 border-l-4 border-mkbhd-red' : 'hover:bg-white/[0.03]'}`}
-                  >
-                    <div className="flex items-center gap-6">
-                      <span className="text-2xl font-black text-white/10 group-hover:text-mkbhd-red transition-colors">{i+1}</span>
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10">
-                          <TeamLogo teamId={driver?.team_name?.toLowerCase()?.replace(/\s+/g, '_') || ''} className="w-full h-full" />
-                        </div>
-                        <div>
-                          <div className="font-black text-2xl uppercase italic leading-none group-hover:tracking-wider transition-all">{driver?.full_name ? driver.full_name.split(' ')[1] : (driver?.name_acronym || `DRIVER ${item.driver_number}`)}</div>
-                          <div className="text-[9px] font-bold text-mkbhd-gray uppercase mt-2 tracking-widest">GAP: {item.interval || 'LEADER'}</div>
-                        </div>
-                      </div>
-                    </div>
-                    {isSelected && <Activity size={18} className="text-mkbhd-red" />}
-                  </motion.div>
-                );
-              })}
-            </AnimatePresence>
-          </div>
-        </div>
-
-        {/* Main Content */}
-        <div className="lg:col-span-9 space-y-10" id="telemetry">
-           <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-              <CircularGauge value={latestTel.speed} max={360} label="Velocity" color="#ffffff" unit="KM/H" />
-              <CircularGauge value={latestTel.rpm} max={12000} label="Engine State" color="#cc0000" unit="RPM" />
-              <div className="mkbhd-card p-10 flex flex-col justify-center items-center bg-mkbhd-red/5">
-                 <div className="text-[10px] font-black text-mkbhd-gray uppercase tracking-[0.4em] mb-6 flex items-center gap-2"><Activity size={14} className="text-mkbhd-red" /> Active Ratio</div>
-                 <div className="text-[10rem] font-black italic text-white leading-none shadow-mkbhd-red/20">{latestTel.n_gear}</div>
-                 <div className="text-xs font-black uppercase text-mkbhd-red tracking-widest mt-4 italic">GEAR_LOCKED</div>
-              </div>
-           </div>
-
-           <div className="grid grid-cols-1 xl:grid-cols-2 gap-10 h-fit">
-              <TrackMap locations={locations} selectedDriver={selectedDriver} />
-              <div className="flex flex-col gap-10">
-                 <div className="mkbhd-card p-10 flex-1 flex flex-col min-h-[400px]">
-                    <div className="flex items-center justify-between mb-10">
-                       <h2 className="text-xs font-black uppercase tracking-[0.3em] flex items-center gap-3">
-                         <TrendingUp size={16} className="text-mkbhd-red" /> Performance Trace
-                       </h2>
-                       <div className="text-[10px] font-mono text-mkbhd-gray">UPLINK_04_ACTIVE</div>
-                    </div>
-                    <div className="flex-1 min-h-0">
-                       <ResponsiveContainer width="100%" height="100%">
-                         <AreaChart data={liveData?.telemetry}>
-                           <defs>
-                             <linearGradient id="mkbhdGrad" x1="0" y1="0" x2="0" y2="1">
-                               <stop offset="5%" stopColor="#cc0000" stopOpacity={0.4}/>
-                               <stop offset="95%" stopColor="#cc0000" stopOpacity={0}/>
-                             </linearGradient>
-                           </defs>
-                           <Area type="monotone" dataKey="speed" stroke="#cc0000" fill="url(#mkbhdGrad)" strokeWidth={4} isAnimationActive={false} />
-                           <YAxis domain={['auto', 'auto']} hide />
-                           <Tooltip contentStyle={{ backgroundColor: '#0a0a0a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }} />
-                         </AreaChart>
-                       </ResponsiveContainer>
-                    </div>
-                 </div>
-
-                 <div className="mkbhd-card p-12 h-48 bg-white/[0.01] flex items-center justify-around gap-12" id="analytics">
-                    <div className="flex-1">
-                       <div className="text-[10px] font-black text-mkbhd-gray uppercase mb-4 flex justify-between tracking-widest">
-                         <span>THROTTLE</span>
-                         <span className="text-white italic">{latestTel.throttle}%</span>
-                       </div>
-                       <div className="h-2 bg-white/5 rounded-full overflow-hidden border border-white/5 p-0.5">
-                         <motion.div animate={{ width: `${latestTel.throttle}%` }} className="h-full bg-white rounded-full" />
-                       </div>
-                    </div>
-                    <div className="flex-1">
-                       <div className="text-[10px] font-black text-mkbhd-gray uppercase mb-4 flex justify-between tracking-widest">
-                         <span>BRAKE_SYSTEM</span>
-                         <span className="text-mkbhd-red italic">{latestTel.brake}%</span>
-                       </div>
-                       <div className="h-2 bg-white/5 rounded-full overflow-hidden border border-white/5 p-0.5">
-                         <motion.div animate={{ width: `${latestTel.brake}%` }} className="h-full bg-mkbhd-red rounded-full" />
-                       </div>
-                    </div>
-                 </div>
-              </div>
-           </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 // Official F1 wordmark SVG — angular "F1" letterforms in brand red/white
 const F1Logo = ({ className = '', color = '#cc0000' }: { className?: string; color?: string }) => (
   <svg className={className} viewBox="0 0 120 44" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1087,7 +770,7 @@ export default function App() {
         <AnimatePresence mode="wait">
           {status?.is_live ? (
             <motion.div key="live" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
-               <LiveDashboard status={status} />
+               <LiveDashboard />
             </motion.div>
           ) : (
             <motion.div key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-24">

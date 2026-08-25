@@ -2,7 +2,7 @@
 
 ## Architecture
 
-**Single-file frontend:** `frontend/src/App.tsx` (~1200 lines) — all components, modals, state.  
+**Frontend:** `frontend/src/App.tsx` (1109 lines) — idle-dashboard components, modals, state. Live session lives in `frontend/src/live/` (domain components + `useLiveTimingSocket`/`liveState`/`types`) and `frontend/src/ui/` (shared presentation primitives).  
 **Backend:** `backend/main.py` (FastAPI, ~400 lines) — proxies OpenF1, Jolpica, ESPN.  
 **Backend tests:** `backend/test_circuit_history.py` (4 pytest tests, requires `respx`).  
 **Ports:** Frontend 5173 (Vite), Backend 8000 (FastAPI).  
@@ -14,22 +14,38 @@
 
 | Component | ~Line | Purpose |
 |---|---|---|
-| `TEAM_COLORS` | 18 | CSS color badge map for all 10 teams |
-| `TeamLogo` | 34 | Renders colored badge with short team code |
-| `StudioButton` | 50 | Primary/secondary button |
-| `StudioModal` | 61 | Full-screen modal — Escape key + backdrop click closes |
-| `CircularGauge` | 100 | SVG circular progress gauge (live telemetry) |
-| `TrackMap` | 135 | Live driver positions on SVG grid |
-| `CIRCUIT_ID_MAP` | 195 | Jolpica circuitId → bacinger GeoJSON key (24 circuits) |
-| `geoJsonToSvgPath` | 210 | LineString GeoJSON → normalized SVG path 440×310 |
-| `fallbackTrackPath` | 235 | Procedural fallback when circuit not in map |
-| `CircuitTrack3D` | 255 | Real-geometry 3D track + SMIL car animation |
-| `CircuitElevation` | 305 | Recharts area chart — `h-28` fixed height |
-| `CircuitDetailsModal` | 332 | Circuit analysis: stats, elevation, year picker, results |
-| `SectionHeader` | 475 | Section divider with icon + title |
-| `CareerModal` | 488 | Driver/constructor profile modal |
-| `LiveDashboard` | 565 | Live session: leaderboard + gauges + track map |
-| Main `App()` | 720 | State, data fetching, layout, all modals |
+| `StudioButton` | 22 | Primary/secondary button |
+| `TEAM_COLORS` | 31 | CSS color badge map for all 10 teams |
+| `TeamLogo` | 45 | Renders colored badge with short team code |
+| `StudioModal` | 62 | Full-screen modal — Escape key + backdrop click closes |
+| `CIRCUIT_ID_MAP` | 101 | Jolpica circuitId → bacinger GeoJSON key (24 circuits) |
+| `geoJsonToSvgPath` | 113 | LineString GeoJSON → normalized SVG path 440×310 |
+| `fallbackTrackPath` | 155 | Procedural fallback when circuit not in map |
+| `CircuitTrack3D` | 169 | Real-geometry 3D track + SMIL car animation |
+| `CircuitElevation` | 217 | Recharts area chart — `h-28` fixed height |
+| `CircuitDetailsModal` | 254 | Circuit analysis: stats, elevation, year picker, results |
+| `SectionHeader` | 518 | Section divider with icon + title |
+| `CareerModal` | 532 | Driver/constructor profile modal |
+| Main `App()` | 632 | State, data fetching, layout, all modals; renders `<LiveDashboard />` when `status.is_live` |
+
+## Live Session Components (own SignalR feed, not App.tsx)
+
+Backend connects directly to F1's live timing feed and pushes decoded
+state over `/ws/live` — see
+`docs/superpowers/specs/2026-08-14-live-timing-signalr-design.md` and
+`docs/superpowers/plans/2026-08-17-live-timing-signalr.md`.
+
+| Component / module | File | Purpose |
+|---|---|---|
+| `LiveDashboard` | `frontend/src/live/LiveDashboard.tsx` | Top-level live view — composes everything below, owns `selectedDriver` |
+| `useLiveTimingSocket` | `frontend/src/live/useLiveTimingSocket.ts` | WebSocket hook — connects to `/ws/live`, reconnects with backoff, exposes a `LiveSnapshot` |
+| `liveState` | `frontend/src/live/liveState.ts` | Reducer applying `{key: value}` patches over the snapshot; `deriveWsUrl` |
+| `types` | `frontend/src/live/types.ts` | `LiveSnapshot` and every payload shape, mirroring the backend's derived projections |
+| `TimingTower` | `frontend/src/live/TimingTower.tsx` | Leaderboard — position, gap/interval, sectors, tyres, pit stops |
+| `TrackMap` | `frontend/src/live/TrackMap.tsx` | Live car positions, expand-only bounds |
+| `RaceControlFeed` | `frontend/src/live/RaceControlFeed.tsx` | Flags / SC / VSC / investigation messages, newest first |
+| `DriverTelemetryPanel` | `frontend/src/live/DriverTelemetryPanel.tsx` | Selected driver's gauges + local speed-trace ring buffer |
+| `CircularGauge` | `frontend/src/ui/CircularGauge.tsx` | Shared SVG gauge primitive (extracted from the old `App.tsx`) |
 
 ## Page Layout (idle, top → bottom)
 
@@ -77,13 +93,12 @@
 
 - `GET /api/circuit/{id}?season=N` → fetches `N-1` results (e.g. season=2027 → 2026 results)
 - `available_years` fixed to `range(start, 2027)` regardless of `season` param
-- `/api/status?mock=true` → mock live session (session_key 9500)
+- `/api/status` → `{"is_live": bool}` from `LiveSessionState.is_live()` (own SignalR feed, not OpenF1 — see Live Session Components above)
 
 ## Remaining Tasks
 
 1. **F1 official logo** — replace "F1D" text in navbar with official F1 SVG marque
-2. **useMock dummy data** — 20 drivers, cycling telemetry, location data
-3. **Race results modal** — FP/Quali/Race/Sprint tabs for completed rounds; needs `GET /api/race-results/{season}/{round}`
+2. **Race results modal** — FP/Quali/Race/Sprint tabs for completed rounds; needs `GET /api/race-results/{season}/{round}`
 
 ## Verification
 

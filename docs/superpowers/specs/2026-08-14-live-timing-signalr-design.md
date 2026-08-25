@@ -54,20 +54,51 @@ backend/livetiming/
 
 ### Connection lifecycle (`client.py`)
 
-1. **Negotiate**: `GET https://livetiming.formula1.com/signalr/negotiate` (SignalR
-   1.x/ASP.NET protocol, not SignalR Core) with the required query params
-   (`clientProtocol`, `connectionData=[{"name":"Streaming"}]`) to obtain a
-   `ConnectionToken`.
-2. **Connect**: open a WebSocket to the `/signalr/connect` URL with that token.
-3. **Subscribe**: send
-   `{"H": "Streaming", "M": "Subscribe", "A": [[<topics>]], "I": 0}` for:
-   `Heartbeat, SessionInfo, DriverList, TimingData, TimingAppData, TimingStats,
-   TrackStatus, RaceControlMessages, WeatherData, CarData.z, Position.z`.
+> **Correction (2026-08-17):** steps 1-3 below originally described
+> legacy SignalR 1.x (ASP.NET SignalR, the `/signalr/` path family). The
+> real feed at `livetiming.formula1.com` speaks **ASP.NET Core SignalR**
+> ("SignalR Core") over `/signalrcore/` instead — a different negotiate
+> response, WebSocket URL, and message envelope. Confirmed by direct
+> observation and corroborated by FastF1's own client, which targets the
+> same `signalrcore` path. See
+> `docs/superpowers/handoffs/2026-08-17-live-timing-signalr-context-transfer.md`
+> §3 for the full comparison. Steps 4-5 were already correct and are
+> unchanged.
+
+1. **Negotiate**: two HTTP calls, in order. First `OPTIONS
+   https://livetiming.formula1.com/signalrcore/negotiate`, purely to
+   collect the `Set-Cookie` values the server issues. Then `POST
+   https://livetiming.formula1.com/signalrcore/negotiate?negotiateVersion=1`,
+   carrying those cookies forward, with header `User-Agent: BestHTTP`
+   (what the official F1 app sends). Response is HTTP 200 with a JSON
+   body containing `connectionToken` — there is no `clientProtocol` /
+   `connectionData` query-string handshake; that's the SignalR 1.x shape,
+   and this endpoint returns 401 for it.
+2. **Connect**: open a WebSocket to
+   `wss://livetiming.formula1.com/signalrcore?id=<connectionToken>`, with
+   the same `User-Agent: BestHTTP` header plus `Accept-Encoding:
+   gzip,identity`, and no read-side message-size cap (`max_size=None` in
+   `websockets` — `CarData.z` frames exceed the library's 1 MiB
+   default). There is no separate `/signalr/connect` URL.
+3. **Handshake, then subscribe**: once the socket is open, send
+   `{"protocol":"json","version":1}\x1e` and wait for the handshake ack,
+   then send
+   `{"type":1,"invocationId":"0","target":"Subscribe","arguments":[[<topics>]]}\x1e`
+   for the same topic list as before: `Heartbeat, SessionInfo,
+   DriverList, TimingData, TimingAppData, TimingStats, TrackStatus,
+   RaceControlMessages, WeatherData, CarData.z, Position.z`. The server
+   replies with one `type:3` completion record whose `result` is the
+   full initial snapshot keyed by topic; every record after that is a
+   `type:1` invocation carrying one `[topic, payload, timestamp]` delta.
+   `\x1e` (ASCII 30) is the record separator for every frame in both
+   directions. The client must also send an app-level `{"type":6}\x1e`
+   ping periodically, independent of the WebSocket protocol's own
+   ping/pong.
 4. Runs as an asyncio background task started from the FastAPI lifespan handler
    (not per-request). Stays connected continuously — outside a session the feed
    just idles on `Heartbeat`, which is cheap.
 5. **Reconnect**: on any disconnect/error, retry with exponential backoff
-   (e.g. 1s → 2s → 5s → 10s cap). Every state transition (`connecting`,
+   (1s → 2s → 5s → 10s cap). Every state transition (`connecting`,
    `connected`, `disconnected`, `reconnecting`) is logged and also stored on
    `LiveSessionState` so the frontend can distinguish "no session live right
    now" from "our connection to F1 is down."
