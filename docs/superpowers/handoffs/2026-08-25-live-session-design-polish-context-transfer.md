@@ -1,5 +1,10 @@
 # Context Transfer — Live-Session Design Polish + F1 Logo
 
+> **⚠️ SUPERSEDED by [2026-08-26-live-timing-shipped-context-transfer.md](2026-08-26-live-timing-shipped-context-transfer.md).**
+> This doc is kept for history. Its §1/§3/§9 are now STALE: the pending commits it lists were
+> all made, the work is pushed to `origin/main`, and the suites are green (13 frontend, 57
+> backend). Read the 08-26 doc for current state.
+
 **Date:** 2026-08-25
 **Purpose:** Carry the working context of the live-session redesign + logo work across a context
 boundary, so a session with zero prior context can finish cleanly without re-doing discovery.
