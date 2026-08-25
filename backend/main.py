@@ -1,15 +1,78 @@
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-import httpx
 import asyncio
 import os
+import sys
+from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from typing import Optional
+
+# main.py is run both as `uvicorn main:app` (Railway, cwd=backend/) and
+# imported by test files that already do this same insert — belt-and-
+# suspenders so `import livetiming` resolves regardless of invocation cwd.
+sys.path.insert(0, os.path.dirname(__file__))
+
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
+import httpx
 from dotenv import load_dotenv
+
+from livetiming.client import LiveTimingClient
+from livetiming.hub import Broadcaster
+from livetiming.recorder import replay_fixture
+from livetiming.state import LiveSessionState
 
 load_dotenv()
 
-app = FastAPI(title="F1 Dashboard API")
+# Our own choice for LIVETIMING_REPLAY dev-loop pacing — not a locked
+# constant from the handoff.
+LIVETIMING_REPLAY_DELAY_SECONDS = 5
+
+
+async def _run_replay_loop(path: str, live_state: LiveSessionState, broadcaster: Broadcaster) -> None:
+    """LIVETIMING_REPLAY dev mode: loop the fixture through the real
+    decode -> state -> broadcast pipeline forever, so a frontend developer
+    sees a live-looking feed without ever touching F1's servers.
+    Connection status is set once, up front; replay itself only ever
+    calls LiveSessionState.apply (Task 4's replay_fixture), never
+    set_connection_status — a fixture file has no connection lifecycle of
+    its own."""
+    patch = live_state.set_connection_status("connected")
+    await broadcaster.broadcast(patch)
+    while True:
+        await replay_fixture(path, live_state, broadcaster.broadcast)
+        await asyncio.sleep(LIVETIMING_REPLAY_DELAY_SECONDS)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    live_state = LiveSessionState()
+    broadcaster = Broadcaster()
+    app.state.live_state = live_state
+    app.state.broadcaster = broadcaster
+
+    client: Optional[LiveTimingClient] = None
+    background_task: Optional["asyncio.Task[None]"] = None
+
+    if os.environ.get("LIVETIMING_AUTOSTART", "1") != "0":
+        replay_path = os.environ.get("LIVETIMING_REPLAY")
+        if replay_path:
+            background_task = asyncio.ensure_future(_run_replay_loop(replay_path, live_state, broadcaster))
+        else:
+            client = LiveTimingClient(live_state, broadcaster.broadcast)
+            background_task = asyncio.ensure_future(client.run())
+
+    yield
+
+    if client is not None:
+        await client.stop()  # cooperative: takes effect at run()'s next loop boundary
+    if background_task is not None:
+        background_task.cancel()  # forceful: unwinds even a suspended no-timeout WS read
+        try:
+            await background_task
+        except asyncio.CancelledError:
+            pass
+
+
+app = FastAPI(title="F1 Dashboard API", lifespan=lifespan)
 
 # Indian Standard Time (IST) - UTC+5:30
 IST = timezone(timedelta(hours=5, minutes=30))
@@ -22,6 +85,27 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.websocket("/ws/live")
+async def ws_live(websocket: WebSocket) -> None:
+    await websocket.accept()
+    broadcaster: Broadcaster = websocket.app.state.broadcaster
+    live_state: LiveSessionState = websocket.app.state.live_state
+    await broadcaster.register(websocket)
+    try:
+        # Full current state on connect, so a client that joins mid-session
+        # doesn't have to wait for the next delta to see anything.
+        await websocket.send_json(live_state.snapshot())
+        while True:
+            # The frontend never sends anything meaningful up this socket;
+            # this purely blocks until the browser disconnects.
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        pass
+    finally:
+        await broadcaster.unregister(websocket)
+
 
 OPENF1_BASE_URL = "https://api.openf1.org/v1"
 OPENF1_TOKEN_URL = "https://api.openf1.org/token"
@@ -138,78 +222,16 @@ CIRCUIT_OPENF1_SHORT_NAME = {
 }
 
 @app.get("/api/status")
-async def get_status(mock: bool = False):
-    """
-    Checks if there is a live F1 session happening.
-    A session is considered live if the current time is within [start_time - 30m, end_time + 30m].
-    Timezone used: IST (UTC+5:30).
-    """
-    if mock:
-        return {
-            "is_live": True,
-            "session_type": "Race",
-            "session_name": "Mock Grand Prix",
-            "session_key": 9500, # Example session key
-            "meeting_key": 1217
-        }
-
-    try:
-        openf1_headers = await get_openf1_headers()
-        async with httpx.AsyncClient() as client:
-            # Get the latest session
-            response = await client.get(f"{OPENF1_BASE_URL}/sessions?session_key=latest", headers=openf1_headers)
-
-            # OpenF1 returns 402 during live sessions for unauthenticated users.
-            # A 402 means a session IS live — we just can't read data without an API key.
-            if response.status_code == 402:
-                return {
-                    "is_live": True,
-                    "no_api_access": True,
-                    "session_name": "Live Session",
-                    "session_type": None,
-                    "session_key": None,
-                }
-
-            response.raise_for_status()
-            sessions = response.json()
-
-            if not sessions:
-                return {"is_live": False, "message": "No session data found"}
-
-            latest_session = sessions[0]
-            start_time_str = latest_session.get("date_start")
-            end_time_str = latest_session.get("date_end")
-
-            if not start_time_str:
-                return {"is_live": False, "message": "Session start time missing"}
-
-            start_time = datetime.fromisoformat(start_time_str.replace("Z", "+00:00"))
-
-            if end_time_str:
-                end_time = datetime.fromisoformat(end_time_str.replace("Z", "+00:00"))
-            else:
-                end_time = start_time + timedelta(hours=2)
-
-            now = datetime.now(IST)
-
-            live_start = start_time - timedelta(minutes=30)
-            live_end = end_time + timedelta(minutes=30)
-
-            is_live = live_start <= now <= live_end
-
-            return {
-                "is_live": is_live,
-                "no_api_access": False,
-                "session_type": latest_session.get("session_type"),
-                "session_name": latest_session.get("session_name"),
-                "session_key": latest_session.get("session_key"),
-                "meeting_key": latest_session.get("meeting_key"),
-                "start_time": start_time_str,
-                "end_time": end_time_str,
-                "now": now.isoformat()
-            }
-    except Exception as e:
-        return {"is_live": False, "error": str(e)}
+async def get_status():
+    """Live-session detection now comes from our own SignalR connection
+    (Task 3's LiveSessionState.is_live(), fed by Task 5's LiveTimingClient
+    or Task 6's LIVETIMING_REPLAY loop) instead of an OpenF1 session-time
+    heuristic. The old `mock` query param and its session_key/session_name/
+    no_api_access fields are gone with it — nothing in the frontend called
+    `?mock=true` (confirmed by search), and those fields only ever existed
+    to support the OpenF1-window heuristic this replaces."""
+    live_state: LiveSessionState = app.state.live_state
+    return {"is_live": live_state.is_live()}
 
 @app.get("/api/idle-data")
 async def get_idle_data():
@@ -279,63 +301,6 @@ async def get_idle_data():
             "schedule": [],
             "next_race": {}
         }
-
-@app.get("/api/live-data")
-async def get_live_data(session_key: int, driver_number: Optional[int] = None):
-    """
-    Fetches live telemetry and interval data for a session.
-    """
-    try:
-        openf1_headers = await get_openf1_headers()
-        async with httpx.AsyncClient() as client:
-            # 1. Fetch Leaderboard (Intervals)
-            intervals_resp = await client.get(f"{OPENF1_BASE_URL}/intervals?session_key={session_key}", headers=openf1_headers)
-            if intervals_resp.status_code == 402:
-                raise HTTPException(status_code=402, detail="OpenF1 API requires authentication during live sessions.")
-            intervals = intervals_resp.json()
-
-            # 2. Fetch Driver Positions
-            pos_resp = await client.get(f"{OPENF1_BASE_URL}/position?session_key={session_key}", headers=openf1_headers)
-            positions = pos_resp.json()
-
-            # 3. Fetch Car Data (Telemetry) for a specific driver if provided
-            telemetry = []
-            if driver_number:
-                tel_resp = await client.get(f"{OPENF1_BASE_URL}/car_data?session_key={session_key}&driver_number={driver_number}", headers=openf1_headers)
-                telemetry = tel_resp.json()[-50:]
-
-            # 4. Fetch Driver Info (to map driver numbers to names)
-            drivers_resp = await client.get(f"{OPENF1_BASE_URL}/drivers?session_key={session_key}", headers=openf1_headers)
-            drivers = drivers_resp.json()
-
-            return {
-                "intervals": intervals[-20:] if intervals else [],
-                "positions": positions[-20:] if positions else [],
-                "telemetry": telemetry,
-                "drivers": {d["driver_number"]: d for d in drivers}
-            }
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/api/location")
-async def get_location(session_key: int):
-    """
-    Fetches the latest locations for all drivers.
-    """
-    try:
-        openf1_headers = await get_openf1_headers()
-        async with httpx.AsyncClient() as client:
-            resp = await client.get(f"{OPENF1_BASE_URL}/location?session_key={session_key}", headers=openf1_headers)
-            locations = resp.json()
-            # Return only the latest location for each driver to reduce payload
-            latest_locs = {}
-            for loc in locations:
-                latest_locs[loc["driver_number"]] = loc
-            return list(latest_locs.values())
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/milestones")
 async def get_milestones():
