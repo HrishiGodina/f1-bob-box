@@ -608,17 +608,23 @@ const CareerModal = ({ isOpen, onClose, type, id }: any) => {
   );
 };
 
-// Official F1 wordmark SVG — angular "F1" letterforms in brand red/white
+// Stylized "F1" speed-mark: a forward-raked "F1" wordmark trailed by a
+// tapering red speed flare. An original homage to Formula 1's look —
+// deliberately NOT a reproduction of the trademarked official logo. The
+// `color` prop tints the red speed flare (letterforms stay white so "F1"
+// reads cleanly on the dark studio background).
 const F1Logo = ({ className = '', color = '#cc0000' }: { className?: string; color?: string }) => (
-  <svg className={className} viewBox="0 0 120 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-    {/* F letterform */}
-    <polygon points="0,0 52,0 52,10 12,10 12,18 46,18 46,28 12,28 12,44 0,44" fill={color} />
-    {/* 1 letterform */}
-    <polygon points="62,0 80,0 80,44 68,44 68,10 58,14 58,2" fill="white" />
-    {/* Red accent bar */}
-    <rect x="84" y="0" width="36" height="8" fill={color} />
-    <rect x="84" y="18" width="36" height="8" fill={color} />
-    <rect x="84" y="36" width="36" height="8" fill={color} />
+  <svg className={className} viewBox="0 0 150 46" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <g transform="translate(10,1) skewX(-10)">
+      {/* F */}
+      <path d="M0 0 H48 V11 H14 V18 H41 V29 H14 V44 H0 Z" fill="#ffffff" />
+      {/* 1 */}
+      <path d="M62 1 H76 V44 H62 V15 L53 19 V9 Z" fill="#ffffff" />
+      {/* tapering speed flare */}
+      <rect x="84" y="2" width="48" height="9" fill={color} />
+      <rect x="84" y="17.5" width="37" height="9" fill={color} />
+      <rect x="84" y="33" width="26" height="9" fill={color} />
+    </g>
   </svg>
 );
 
