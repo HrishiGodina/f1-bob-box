@@ -25,22 +25,25 @@ export interface RaceControlTickerProps {
 
 // A compact, single-row glance strip — the tall scrolling card
 // (RaceControlFeed) is gone; this shows only the single most recent
-// message (messages is already newest-first, see the removed
-// RaceControlFeed's comment for why no re-sorting happens here) plus a
-// count badge for anything older, so Race Control costs one row of
-// vertical space instead of a min-h-[400px] card.
+// message plus a count badge for anything older, so Race Control costs
+// one row of vertical space instead of a min-h-[400px] card. messages is
+// already newest-first because the backend prepends new messages to the
+// front of the list, so no re-sorting happens here — re-sorting would be
+// a second, independent ordering decision.
 export function RaceControlTicker({ messages }: RaceControlTickerProps) {
   const [latest, ...rest] = messages;
+  const text = latest?.Message ?? (latest ? JSON.stringify(latest) : "");
+  const style = latest ? messageStyle(text) : null;
 
   return (
     <div className="mkbhd-card px-6 py-3 flex items-center gap-4 min-h-[56px]">
       <h2 className="text-xs font-black uppercase tracking-[0.3em] flex-shrink-0">Race Control</h2>
-      {latest ? (
+      {latest && style ? (
         <>
-          <div className={`w-1 self-stretch rounded-full flex-shrink-0 ${messageStyle(latest.Message ?? JSON.stringify(latest)).bar}`} />
+          <div className={`w-1 self-stretch rounded-full flex-shrink-0 ${style.bar}`} />
           <div className="min-w-0 flex-1 truncate">
-            <span className={`text-sm font-bold uppercase italic ${messageStyle(latest.Message ?? JSON.stringify(latest)).text}`}>
-              {latest.Message ?? JSON.stringify(latest)}
+            <span className={`text-sm font-bold uppercase italic ${style.text}`}>
+              {text}
             </span>
           </div>
           {rest.length > 0 && (

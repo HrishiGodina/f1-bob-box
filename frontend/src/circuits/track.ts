@@ -86,21 +86,26 @@ export const fallbackTrackPath = (circuitId: string) => {
 
 // Lowercased, underscore-free circuit slugs from CIRCUIT_GEOJSON, longest first,
 // so "red_bull_ring" matches before a shorter unrelated substring would.
+// Each keyword is matched on word boundaries (not as a plain substring) so
+// e.g. "spa" doesn't false-positive inside "ESPANA"/"SPANISH".
 const CIRCUIT_KEYWORDS = Object.keys(CIRCUIT_GEOJSON)
-  .map((slug) => ({ slug, keyword: slug.replace(/_/g, " ") }))
+  .map((slug) => {
+    const keyword = slug.replace(/_/g, " ");
+    return { slug, keyword, pattern: new RegExp(`\\b${keyword}\\b`) };
+  })
   .sort((a, b) => b.keyword.length - a.keyword.length);
 
 /**
  * Best-effort match of a live-feed session/meeting name (e.g.
  * "FORMULA 1 GULF AIR BAHRAIN GRAND PRIX 2026") to a known circuit slug,
- * by scanning for a circuit keyword as a substring. Returns null when
+ * by scanning for a circuit keyword on a word boundary. Returns null when
  * nothing matches — callers fall back to no track outline.
  */
 export function resolveCircuitKey(sessionName: string | null | undefined): string | null {
   if (!sessionName) return null;
   const normalized = sessionName.toLowerCase();
-  for (const { slug, keyword } of CIRCUIT_KEYWORDS) {
-    if (normalized.includes(keyword)) return slug;
+  for (const { slug, pattern } of CIRCUIT_KEYWORDS) {
+    if (pattern.test(normalized)) return slug;
   }
   return null;
 }

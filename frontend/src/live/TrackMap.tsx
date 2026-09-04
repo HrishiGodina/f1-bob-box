@@ -44,14 +44,15 @@ export interface TrackMapProps {
 export function TrackMap({ drivers, positions, selectedDriver, sessionName }: TrackMapProps) {
   const boundsRef = useRef<Bounds | null>(null);
 
-  // The dot positions below (points useMemo) are normalized into a fixed
-  // 400x400 space with a 20px pad on each side (normX/normY = frac*360+20,
-  // so they range 20..380). The track outline uses the same 400x400 space
-  // and matching pad so it lines up with where the dots are drawn.
+  // Rendered in the same 400x400 viewBox as the dots below, as a decorative
+  // backdrop — the GeoJSON projection (aspect-ratio-preserving, centered)
+  // and the dots' per-axis stretch-to-fit don't produce pixel-exact
+  // registration, and none is attempted here.
   const circuitKey = useMemo(() => resolveCircuitKey(sessionName), [sessionName]);
   const trackPath = useMemo(() => {
     if (circuitKey && CIRCUIT_GEOJSON[circuitKey]) {
-      return geoJsonToSvgPath(CIRCUIT_GEOJSON[circuitKey], 400, 400, 20);
+      const d = geoJsonToSvgPath(CIRCUIT_GEOJSON[circuitKey], 400, 400, 20);
+      return d || fallbackTrackPath(circuitKey);
     }
     return circuitKey ? fallbackTrackPath(circuitKey) : null;
   }, [circuitKey]);

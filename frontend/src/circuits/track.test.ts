@@ -238,5 +238,10 @@ describe('track utilities', () => {
         'silverstone'
       );
     });
+
+    it("does not false-positive-match 'spa' inside Spanish GP names", () => {
+      expect(resolveCircuitKey('FORMULA 1 ARAMCO GRAN PREMIO DE ESPANA 2026')).not.toBe('spa');
+      expect(resolveCircuitKey('FORMULA 1 SPANISH GRAND PRIX 2026')).not.toBe('spa');
+    });
   });
 });

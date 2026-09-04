@@ -42,10 +42,15 @@ state over `/ws/live` — see
 | `liveState` | `frontend/src/live/liveState.ts` | Reducer applying `{key: value}` patches over the snapshot; `deriveWsUrl` |
 | `types` | `frontend/src/live/types.ts` | `LiveSnapshot` and every payload shape, mirroring the backend's derived projections |
 | `TimingTower` | `frontend/src/live/TimingTower.tsx` | Leaderboard — position, gap/interval, sectors, tyres, pit stops |
-| `TrackMap` | `frontend/src/live/TrackMap.tsx` | Live car positions, expand-only bounds |
-| `RaceControlFeed` | `frontend/src/live/RaceControlFeed.tsx` | Flags / SC / VSC / investigation messages, newest first |
+| `TrackMap` | `frontend/src/live/TrackMap.tsx` | Live car positions, expand-only bounds; also renders a decorative GeoJSON track outline |
+| `RaceControlTicker` | `frontend/src/live/RaceControlTicker.tsx` | Compact single-row Race Control strip — latest message + count badge |
 | `DriverTelemetryPanel` | `frontend/src/live/DriverTelemetryPanel.tsx` | Selected driver's gauges + local speed-trace ring buffer |
 | `CircularGauge` | `frontend/src/ui/CircularGauge.tsx` | Shared SVG gauge primitive (extracted from the old `App.tsx`) |
+| `battles` | `frontend/src/live/battles.ts` | `computeBattles` — derives on-track battles (approaching/live tiers) from timing gaps |
+| `useWingBotAlerts` | `frontend/src/live/useWingBotAlerts.ts` | Hook — turns new battles into transient toast alerts (TTL-based) |
+| `WingBotAlerts` | `frontend/src/live/WingBotAlerts.tsx` | Renders `useWingBotAlerts` toasts, bottom-right |
+| `BattleWatchList` | `frontend/src/live/BattleWatchList.tsx` | Card listing "live" tier battles with driver speeds |
+| `track` | `frontend/src/circuits/track.ts` | `resolveCircuitKey`, `geoJsonToSvgPath`, `fallbackTrackPath` — session-name → circuit slug + SVG path helpers |
 
 ## Page Layout (idle, top → bottom)
 
