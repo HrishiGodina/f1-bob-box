@@ -86,15 +86,24 @@ describe("loadOverride / saveOverride", () => {
 
 describe("shouldShowNoSessionPanel", () => {
   it("shows the panel when live and real but the backend has no session", () => {
-    expect(shouldShowNoSessionPanel(false, false)).toBe(true);
+    expect(shouldShowNoSessionPanel(false, false, true)).toBe(true);
   });
 
   it("never shows the panel while demo is active", () => {
-    expect(shouldShowNoSessionPanel(false, true)).toBe(false);
-    expect(shouldShowNoSessionPanel(true, true)).toBe(false);
+    expect(shouldShowNoSessionPanel(false, true, true)).toBe(false);
+    expect(shouldShowNoSessionPanel(true, true, true)).toBe(false);
   });
 
   it("does not show the panel when a real session is live", () => {
-    expect(shouldShowNoSessionPanel(true, false)).toBe(false);
+    expect(shouldShowNoSessionPanel(true, false, true)).toBe(false);
+  });
+
+  it("never shows the panel before any snapshot has arrived, even if isLive is falsy", () => {
+    expect(shouldShowNoSessionPanel(false, false, false)).toBe(false);
+    expect(shouldShowNoSessionPanel(true, false, false)).toBe(false);
+  });
+
+  it("shows the panel once a snapshot has arrived and reports no session", () => {
+    expect(shouldShowNoSessionPanel(false, false, true)).toBe(true);
   });
 });

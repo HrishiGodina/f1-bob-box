@@ -28,6 +28,14 @@ describe("DEMO_TIMELINE shape", () => {
     }
   });
 
+  it("every driver's team_colour is a CSS-valid #RRGGBB (leading # required)", () => {
+    for (const frame of DEMO_TIMELINE.frames) {
+      for (const driver of Object.values(frame.snapshot.drivers)) {
+        expect(driver.team_colour).toMatch(/^#[0-9A-Fa-f]{6}$/);
+      }
+    }
+  });
+
   it("shows motion across frames (positions actually change)", () => {
     const first = DEMO_TIMELINE.frames[0].snapshot.positions["1"];
     const last = DEMO_TIMELINE.frames[DEMO_TIMELINE.frames.length - 1].snapshot.positions["1"];

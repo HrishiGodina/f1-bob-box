@@ -8,10 +8,10 @@
         "is_live": true,
         "session_info": { "Meeting": { "Name": "Demo Grand Prix" }, "Type": "Race" },
         "drivers": {
-          "1": { "racing_number": "1", "tla": "VER", "full_name": "Max Verstappen", "team_name": "Red Bull Racing", "team_colour": "3671C6", "line": 1 },
-          "4": { "racing_number": "4", "tla": "NOR", "full_name": "Lando Norris", "team_name": "McLaren", "team_colour": "FF8000", "line": 2 },
-          "16": { "racing_number": "16", "tla": "LEC", "full_name": "Charles Leclerc", "team_name": "Ferrari", "team_colour": "E80020", "line": 3 },
-          "44": { "racing_number": "44", "tla": "HAM", "full_name": "Lewis Hamilton", "team_name": "Mercedes", "team_colour": "27F4D2", "line": 4 }
+          "1": { "racing_number": "1", "tla": "VER", "full_name": "Max Verstappen", "team_name": "Red Bull Racing", "team_colour": "#3671C6", "line": 1 },
+          "4": { "racing_number": "4", "tla": "NOR", "full_name": "Lando Norris", "team_name": "McLaren", "team_colour": "#FF8000", "line": 2 },
+          "16": { "racing_number": "16", "tla": "LEC", "full_name": "Charles Leclerc", "team_name": "Ferrari", "team_colour": "#E80020", "line": 3 },
+          "44": { "racing_number": "44", "tla": "HAM", "full_name": "Lewis Hamilton", "team_name": "Mercedes", "team_colour": "#27F4D2", "line": 4 }
         },
         "timing": {
           "1": { "position": "1", "gap_to_leader": null, "interval": null, "catching": false, "sectors": [{ "Value": "28.112", "OverallFastest": false, "PersonalFastest": false }, { "Value": "31.884", "OverallFastest": false, "PersonalFastest": false }, { "Value": "16.205", "OverallFastest": false, "PersonalFastest": false }], "last_lap": { "Value": "1:16.201" }, "best_lap": { "Value": "1:15.870" }, "tyre_compound": "MEDIUM", "tyre_is_new": false, "stint_laps": 12, "pit_count": 0, "in_pit": false, "retired": false, "personal_best_lap": null },
@@ -43,10 +43,10 @@
         "is_live": true,
         "session_info": { "Meeting": { "Name": "Demo Grand Prix" }, "Type": "Race" },
         "drivers": {
-          "1": { "racing_number": "1", "tla": "VER", "full_name": "Max Verstappen", "team_name": "Red Bull Racing", "team_colour": "3671C6", "line": 1 },
-          "4": { "racing_number": "4", "tla": "NOR", "full_name": "Lando Norris", "team_name": "McLaren", "team_colour": "FF8000", "line": 2 },
-          "16": { "racing_number": "16", "tla": "LEC", "full_name": "Charles Leclerc", "team_name": "Ferrari", "team_colour": "E80020", "line": 3 },
-          "44": { "racing_number": "44", "tla": "HAM", "full_name": "Lewis Hamilton", "team_name": "Mercedes", "team_colour": "27F4D2", "line": 4 }
+          "1": { "racing_number": "1", "tla": "VER", "full_name": "Max Verstappen", "team_name": "Red Bull Racing", "team_colour": "#3671C6", "line": 1 },
+          "4": { "racing_number": "4", "tla": "NOR", "full_name": "Lando Norris", "team_name": "McLaren", "team_colour": "#FF8000", "line": 2 },
+          "16": { "racing_number": "16", "tla": "LEC", "full_name": "Charles Leclerc", "team_name": "Ferrari", "team_colour": "#E80020", "line": 3 },
+          "44": { "racing_number": "44", "tla": "HAM", "full_name": "Lewis Hamilton", "team_name": "Mercedes", "team_colour": "#27F4D2", "line": 4 }
         },
         "timing": {
           "1": { "position": "1", "gap_to_leader": null, "interval": null, "catching": false, "sectors": [{ "Value": "28.098", "OverallFastest": false, "PersonalFastest": false }, { "Value": "31.870", "OverallFastest": false, "PersonalFastest": false }, { "Value": "16.190", "OverallFastest": false, "PersonalFastest": false }], "last_lap": { "Value": "1:16.158" }, "best_lap": { "Value": "1:15.870" }, "tyre_compound": "MEDIUM", "tyre_is_new": false, "stint_laps": 13, "pit_count": 0, "in_pit": false, "retired": false, "personal_best_lap": null },
@@ -78,10 +78,10 @@
         "is_live": true,
         "session_info": { "Meeting": { "Name": "Demo Grand Prix" }, "Type": "Race" },
         "drivers": {
-          "1": { "racing_number": "1", "tla": "VER", "full_name": "Max Verstappen", "team_name": "Red Bull Racing", "team_colour": "3671C6", "line": 1 },
-          "4": { "racing_number": "4", "tla": "NOR", "full_name": "Lando Norris", "team_name": "McLaren", "team_colour": "FF8000", "line": 2 },
-          "16": { "racing_number": "16", "tla": "LEC", "full_name": "Charles Leclerc", "team_name": "Ferrari", "team_colour": "E80020", "line": 3 },
-          "44": { "racing_number": "44", "tla": "HAM", "full_name": "Lewis Hamilton", "team_name": "Mercedes", "team_colour": "27F4D2", "line": 4 }
+          "1": { "racing_number": "1", "tla": "VER", "full_name": "Max Verstappen", "team_name": "Red Bull Racing", "team_colour": "#3671C6", "line": 1 },
+          "4": { "racing_number": "4", "tla": "NOR", "full_name": "Lando Norris", "team_name": "McLaren", "team_colour": "#FF8000", "line": 2 },
+          "16": { "racing_number": "16", "tla": "LEC", "full_name": "Charles Leclerc", "team_name": "Ferrari", "team_colour": "#E80020", "line": 3 },
+          "44": { "racing_number": "44", "tla": "HAM", "full_name": "Lewis Hamilton", "team_name": "Mercedes", "team_colour": "#27F4D2", "line": 4 }
         },
         "timing": {
           "1": { "position": "1", "gap_to_leader": null, "interval": null, "catching": false, "sectors": [{ "Value": "28.050", "OverallFastest": false, "PersonalFastest": false }, { "Value": "31.780", "OverallFastest": false, "PersonalFastest": false }, { "Value": "16.150", "OverallFastest": false, "PersonalFastest": false }], "last_lap": { "Value": "1:15.980" }, "best_lap": { "Value": "1:15.870" }, "tyre_compound": "MEDIUM", "tyre_is_new": false, "stint_laps": 14, "pit_count": 0, "in_pit": false, "retired": false, "personal_best_lap": null },
@@ -116,10 +116,10 @@
         "is_live": true,
         "session_info": { "Meeting": { "Name": "Demo Grand Prix" }, "Type": "Race" },
         "drivers": {
-          "1": { "racing_number": "1", "tla": "VER", "full_name": "Max Verstappen", "team_name": "Red Bull Racing", "team_colour": "3671C6", "line": 1 },
-          "4": { "racing_number": "4", "tla": "NOR", "full_name": "Lando Norris", "team_name": "McLaren", "team_colour": "FF8000", "line": 2 },
-          "16": { "racing_number": "16", "tla": "LEC", "full_name": "Charles Leclerc", "team_name": "Ferrari", "team_colour": "E80020", "line": 3 },
-          "44": { "racing_number": "44", "tla": "HAM", "full_name": "Lewis Hamilton", "team_name": "Mercedes", "team_colour": "27F4D2", "line": 4 }
+          "1": { "racing_number": "1", "tla": "VER", "full_name": "Max Verstappen", "team_name": "Red Bull Racing", "team_colour": "#3671C6", "line": 1 },
+          "4": { "racing_number": "4", "tla": "NOR", "full_name": "Lando Norris", "team_name": "McLaren", "team_colour": "#FF8000", "line": 2 },
+          "16": { "racing_number": "16", "tla": "LEC", "full_name": "Charles Leclerc", "team_name": "Ferrari", "team_colour": "#E80020", "line": 3 },
+          "44": { "racing_number": "44", "tla": "HAM", "full_name": "Lewis Hamilton", "team_name": "Mercedes", "team_colour": "#27F4D2", "line": 4 }
         },
         "timing": {
           "1": { "position": "1", "gap_to_leader": null, "interval": null, "catching": false, "sectors": [{ "Value": "27.980", "OverallFastest": false, "PersonalFastest": false }, { "Value": "31.700", "OverallFastest": false, "PersonalFastest": false }, { "Value": "16.100", "OverallFastest": false, "PersonalFastest": false }], "last_lap": { "Value": "1:15.780" }, "best_lap": { "Value": "1:15.780" }, "tyre_compound": "MEDIUM", "tyre_is_new": false, "stint_laps": 15, "pit_count": 0, "in_pit": false, "retired": false, "personal_best_lap": null },

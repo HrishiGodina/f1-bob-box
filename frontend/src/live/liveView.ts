@@ -27,6 +27,29 @@ export function loadOverride(storage: StorageLike): LiveOverride {
   }
 }
 
+// `window.localStorage` is a getter that can itself throw a SecurityError
+// (sandboxed iframes, fully-blocked storage) — that throw happens directly
+// during render (e.g. inside a useState initializer) and is NOT caught by
+// loadOverride/saveOverride's own try/catch, since those only guard the
+// storage *methods*, not the property access that hands them a storage
+// object in the first place. Callers should read `window.localStorage`
+// through this helper instead of touching it directly.
+export function browserStorage(): StorageLike {
+  try {
+    const storage = window.localStorage;
+    // Touch it once — some browsers only throw on first use (e.g. a quota
+    // check), not on the property access itself.
+    storage.getItem("__f1_probe__");
+    return storage;
+  } catch {
+    return {
+      getItem: () => null,
+      setItem: () => {},
+      removeItem: () => {},
+    };
+  }
+}
+
 export function saveOverride(storage: StorageLike, value: LiveOverride): void {
   try {
     if (value === null) {
@@ -40,9 +63,18 @@ export function saveOverride(storage: StorageLike, value: LiveOverride): void {
   }
 }
 
-// True only when the live view is showing, it isn't demo data, and the
-// backend genuinely has no session running (spec §7's honest empty
-// state) — always false while demo is filling the screen instead.
-export function shouldShowNoSessionPanel(isLive: boolean, demoActive: boolean): boolean {
+// True only when the live view is showing, it isn't demo data, the backend
+// genuinely has no session running (spec §7's honest empty state), AND
+// we've actually heard from the backend at least once. Without that last
+// check this would fire on first paint (and on every reconnect) purely
+// because INITIAL_LIVE_STATE defaults is_live to false — indistinguishable
+// from a real "no session" — while the separate "Connecting..." notice is
+// the honest signal for that transient state instead.
+export function shouldShowNoSessionPanel(
+  isLive: boolean,
+  demoActive: boolean,
+  hasSnapshot: boolean
+): boolean {
+  if (!hasSnapshot) return false;
   return !demoActive && !isLive;
 }

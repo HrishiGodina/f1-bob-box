@@ -9,15 +9,19 @@ import { TrackMap } from "./TrackMap";
 import { RaceControlFeed } from "./RaceControlFeed";
 import { DriverTelemetryPanel } from "./DriverTelemetryPanel";
 
-export function LiveDashboard() {
-  const [demoActive, setDemoActive] = useState(false);
-  const snapshot = useLiveSnapshot(demoActive);
+export interface LiveDashboardProps {
+  demoActive: boolean;
+  onToggleDemo: () => void;
+}
+
+export function LiveDashboard({ demoActive, onToggleDemo }: LiveDashboardProps) {
+  const { snapshot, hasSnapshot } = useLiveSnapshot(demoActive);
   const [selectedDriver, setSelectedDriver] = useState<string | null>(null);
 
   const sessionName = snapshot.session_info.Meeting?.Name ?? "ON AIR";
   const isReconnecting = snapshot.connection_status === "reconnecting";
   const showFeedNotice = snapshot.connection_status !== "connected" && !demoActive;
-  const showNoSessionPanel = shouldShowNoSessionPanel(snapshot.is_live, demoActive);
+  const showNoSessionPanel = shouldShowNoSessionPanel(snapshot.is_live, demoActive, hasSnapshot);
 
   const bests = useMemo(
     () => computeSessionBests(snapshot.timing, snapshot.drivers),
@@ -54,7 +58,7 @@ export function LiveDashboard() {
           )}
           <button
             type="button"
-            onClick={() => setDemoActive((prev) => !prev)}
+            onClick={onToggleDemo}
             className="px-6 py-3 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 text-[10px] font-black uppercase tracking-widest text-mkbhd-gray hover:text-white transition-all cursor-pointer"
           >
             {demoActive ? "Stop Demo" : "Start Demo"}
@@ -71,7 +75,7 @@ export function LiveDashboard() {
           </p>
           <button
             type="button"
-            onClick={() => setDemoActive(true)}
+            onClick={onToggleDemo}
             className="mkbhd-btn-primary px-10 py-4 text-[11px] font-black uppercase tracking-widest"
           >
             Start Demo

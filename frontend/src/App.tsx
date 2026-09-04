@@ -14,7 +14,7 @@ import "@fontsource/inter/700.css";
 import "@fontsource/inter/900.css";
 import { CIRCUIT_GEOJSON } from './circuits/index';
 import { LiveDashboard } from './live/LiveDashboard';
-import { loadOverride, saveOverride, resolveLiveView } from './live/liveView';
+import { loadOverride, saveOverride, resolveLiveView, browserStorage } from './live/liveView';
 import type { LiveOverride } from './live/liveView';
 
 const API_BASE = (import.meta as any).env?.VITE_API_BASE ?? "http://localhost:8000/api";
@@ -653,7 +653,8 @@ export default function App() {
   const [selectedCircuit, setSelectedCircuit] = useState<any>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const idleFetchedRef = useRef(false);
-  const [liveOverride, setLiveOverride] = useState<LiveOverride>(() => loadOverride(window.localStorage));
+  const [liveOverride, setLiveOverride] = useState<LiveOverride>(() => loadOverride(browserStorage()));
+  const [demoActive, setDemoActive] = useState(false);
 
   const fetchStatus = async () => {
     try {
@@ -692,13 +693,15 @@ export default function App() {
   const toggleLiveOverride = () => {
     const next: LiveOverride = effectiveLive ? 'off' : 'live';
     setLiveOverride(next);
-    saveOverride(window.localStorage, next);
+    saveOverride(browserStorage(), next);
   };
 
   const resetLiveOverrideToAuto = () => {
     setLiveOverride(null);
-    saveOverride(window.localStorage, null);
+    saveOverride(browserStorage(), null);
   };
+
+  const toggleDemo = () => setDemoActive((prev) => !prev);
 
   // Splash: 'logo' (pulse 1.8s) → 'expand' (scale to fill, 0.6s) → 'done'
   const [splashPhase, setSplashPhase] = useState<'logo' | 'expand' | 'done'>(loading ? 'logo' : 'done');
@@ -768,6 +771,12 @@ export default function App() {
           </div>
           
           <div className="flex items-center gap-6 pl-10 border-l border-white/10">
+            {effectiveLive && demoActive && (
+              <div className="flex items-center gap-3 px-6 py-2.5 rounded-full border border-white/20 bg-white/10 text-[10px] font-black tracking-widest text-white">
+                <div className="w-2 h-2 rounded-full bg-white" />
+                DEMO
+              </div>
+            )}
             {liveOverride !== null && (
               <button
                 type="button"
@@ -808,7 +817,7 @@ export default function App() {
         <AnimatePresence mode="wait">
           {effectiveLive ? (
             <motion.div key="live" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
-               <LiveDashboard />
+               <LiveDashboard demoActive={demoActive} onToggleDemo={toggleDemo} />
             </motion.div>
           ) : (
             <motion.div key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-24">

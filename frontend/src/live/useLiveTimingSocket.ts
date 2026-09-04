@@ -13,14 +13,26 @@ const API_BASE = (import.meta as any).env?.VITE_API_BASE ?? "http://localhost:80
 // catch-up logic beyond just reconnecting.
 const RECONNECT_DELAY_MS = 3000;
 
+export interface LiveSocketState {
+  snapshot: LiveSnapshot;
+  // True once at least one message has actually been received from the
+  // backend over /ws/live. Distinguishes "haven't heard from the backend
+  // yet" (still INITIAL_LIVE_STATE, socket connecting/reconnecting) from
+  // "heard from it, and it genuinely reports no session" — the former
+  // should never be mistaken for the latter (see shouldShowNoSessionPanel
+  // in liveView.ts).
+  hasReceivedData: boolean;
+}
+
 // Owns the single browser connection to /ws/live and folds incoming
 // patches into a LiveSnapshot via the pure applyLivePatch reducer
 // (liveState.ts). connection_status/is_live on the returned snapshot
 // reflect the backend's link to F1, not this hook's own link to the
 // backend — that link's health is handled transparently by the reconnect
 // loop below.
-export function useLiveTimingSocket(enabled: boolean = true): LiveSnapshot {
+export function useLiveTimingSocket(enabled: boolean = true): LiveSocketState {
   const [state, setState] = useState<LiveSnapshot>(INITIAL_LIVE_STATE);
+  const [hasReceivedData, setHasReceivedData] = useState(false);
 
   useEffect(() => {
     if (!enabled) return;
@@ -37,6 +49,7 @@ export function useLiveTimingSocket(enabled: boolean = true): LiveSnapshot {
         try {
           const patch = JSON.parse(event.data) as LivePatch;
           setState((prev) => applyLivePatch(prev, patch));
+          setHasReceivedData(true);
         } catch (error) {
           console.error("failed to parse /ws/live message", error);
         }
@@ -61,5 +74,5 @@ export function useLiveTimingSocket(enabled: boolean = true): LiveSnapshot {
     };
   }, [enabled]);
 
-  return state;
+  return { snapshot: state, hasReceivedData };
 }
