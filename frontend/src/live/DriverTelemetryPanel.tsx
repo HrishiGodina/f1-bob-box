@@ -45,7 +45,7 @@ export function DriverTelemetryPanel({ drivers, telemetry, selectedDriver }: Dri
 
   if (!selectedDriver) {
     return (
-      <div className="mkbhd-card p-16 flex flex-col items-center justify-center gap-4 text-center min-h-[300px] bg-white/[0.01]">
+      <div className="mkbhd-card p-12 flex flex-col items-center justify-center gap-4 text-center min-h-[300px] bg-white/[0.01]">
         <Activity size={32} className="text-mkbhd-gray" />
         <div className="text-mkbhd-gray text-xs uppercase tracking-widest">
           Select a driver from Running Order to view telemetry
@@ -55,16 +55,16 @@ export function DriverTelemetryPanel({ drivers, telemetry, selectedDriver }: Dri
   }
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-6">
       <div className="text-[10px] font-black text-mkbhd-gray uppercase tracking-[0.3em]">
         Tracking: <span className="text-white italic">{driver?.tla ?? `#${selectedDriver}`}</span>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <CircularGauge value={speed} max={360} label="Velocity" color="#ffffff" unit="KM/H" />
         <CircularGauge value={rpm} max={12000} label="Engine State" color="#cc0000" unit="RPM" />
-        <div className="mkbhd-card p-10 flex flex-col justify-center items-center bg-mkbhd-red/5">
-          <div className="text-[10px] font-black text-mkbhd-gray uppercase tracking-[0.4em] mb-6 flex items-center gap-2">
+        <div className="mkbhd-card p-6 flex flex-col justify-center items-center bg-mkbhd-red/5">
+          <div className="text-[10px] font-black text-mkbhd-gray uppercase tracking-[0.4em] mb-4 flex items-center gap-2">
             <Activity size={14} className="text-mkbhd-red" /> Active Ratio
           </div>
           <div className="text-[10rem] font-black italic text-white leading-none">{gear}</div>
@@ -72,8 +72,8 @@ export function DriverTelemetryPanel({ drivers, telemetry, selectedDriver }: Dri
         </div>
       </div>
 
-      <div className="mkbhd-card p-10 flex flex-col min-h-[300px]">
-        <div className="flex items-center justify-between mb-10">
+      <div className="mkbhd-card p-6 flex flex-col min-h-[300px]">
+        <div className="flex items-center justify-between mb-6">
           <h2 className="text-xs font-black uppercase tracking-[0.3em] flex items-center gap-3">
             <Activity size={16} className="text-mkbhd-red" /> Performance Trace
           </h2>
@@ -94,7 +94,7 @@ export function DriverTelemetryPanel({ drivers, telemetry, selectedDriver }: Dri
         </div>
       </div>
 
-      <div className="mkbhd-card p-12 h-48 bg-white/[0.01] flex items-center justify-around gap-12">
+      <div className="mkbhd-card p-8 h-48 bg-white/[0.01] flex items-center justify-around gap-8">
         <div className="flex-1">
           <div className="text-[10px] font-black text-mkbhd-gray uppercase mb-4 flex justify-between tracking-widest">
             <span>THROTTLE</span>

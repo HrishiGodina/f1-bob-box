@@ -33,7 +33,7 @@ interface StatProps {
 // thing at a glance.
 function Stat({ label, value, sub, accent }: StatProps) {
   return (
-    <div className="mkbhd-card p-6 flex items-stretch gap-4 bg-white/[0.01]">
+    <div className="mkbhd-card p-4 flex items-stretch gap-3 bg-white/[0.01]">
       <div className="w-1 rounded-full flex-shrink-0" style={{ backgroundColor: accent }} />
       <div className="min-w-0">
         <div className="text-[10px] font-black uppercase tracking-[0.3em] text-mkbhd-gray">{label}</div>
@@ -55,7 +55,7 @@ export interface SessionBestsProps {
 export function SessionBests({ bests, leaderTla, trackStatus }: SessionBestsProps) {
   const flag = trackFlag(trackStatus);
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
       <Stat label="Leader" value={leaderTla ?? "—"} sub="Position 1" accent="#ffffff" />
       <Stat
         label="Fastest Lap"
