@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import axios from 'axios';
 import {
   Trophy, Newspaper, Zap, MapPin, X,
@@ -650,27 +650,31 @@ export default function App() {
   const [careerProfile, setCareerProfile] = useState<{ type: string, id: string } | null>(null);
   const [selectedCircuit, setSelectedCircuit] = useState<any>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const idleFetchedRef = useRef(false);
 
   const fetchStatus = async () => {
     try {
       const res = await axios.get(`${API_BASE}/status`);
       if (res.data) setStatus(res.data);
-      
-      // Always fetch idle data if it's empty or hasn't been fetched
-      if (idleData.driver_standings.length === 0) {
+
+      // Fetch idle data exactly once per page load, not on every 30s poll.
+      if (!idleFetchedRef.current) {
         try {
-          const [idleRes] = await Promise.all([ 
+          const [idleRes] = await Promise.all([
             axios.get(`${API_BASE}/idle-data`)
           ]);
-          if (idleRes.data) setIdleData(idleRes.data);
+          if (idleRes.data) {
+            setIdleData(idleRes.data);
+            idleFetchedRef.current = true;
+          }
         } catch (innerError) {
           console.error("Error fetching dashboard data:", innerError);
         }
       }
-    } catch (e) { 
-      console.error("Error fetching status:", e); 
-    } finally { 
-      setLoading(false); 
+    } catch (e) {
+      console.error("Error fetching status:", e);
+    } finally {
+      setLoading(false);
     }
   };
 
