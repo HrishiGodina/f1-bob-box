@@ -1,0 +1,151 @@
+{
+  "durationMs": 20000,
+  "frames": [
+    {
+      "atMs": 0,
+      "snapshot": {
+        "connection_status": "connected",
+        "is_live": true,
+        "session_info": { "Meeting": { "Name": "Demo Grand Prix" }, "Type": "Race" },
+        "drivers": {
+          "1": { "racing_number": "1", "tla": "VER", "full_name": "Max Verstappen", "team_name": "Red Bull Racing", "team_colour": "#3671C6", "line": 1 },
+          "4": { "racing_number": "4", "tla": "NOR", "full_name": "Lando Norris", "team_name": "McLaren", "team_colour": "#FF8000", "line": 2 },
+          "16": { "racing_number": "16", "tla": "LEC", "full_name": "Charles Leclerc", "team_name": "Ferrari", "team_colour": "#E80020", "line": 3 },
+          "44": { "racing_number": "44", "tla": "HAM", "full_name": "Lewis Hamilton", "team_name": "Mercedes", "team_colour": "#27F4D2", "line": 4 }
+        },
+        "timing": {
+          "1": { "position": "1", "gap_to_leader": null, "interval": null, "catching": false, "sectors": [{ "Value": "28.112", "OverallFastest": false, "PersonalFastest": false }, { "Value": "31.884", "OverallFastest": false, "PersonalFastest": false }, { "Value": "16.205", "OverallFastest": false, "PersonalFastest": false }], "last_lap": { "Value": "1:16.201" }, "best_lap": { "Value": "1:15.870" }, "tyre_compound": "MEDIUM", "tyre_is_new": false, "stint_laps": 12, "pit_count": 0, "in_pit": false, "retired": false, "personal_best_lap": null },
+          "4": { "position": "2", "gap_to_leader": "+1.203", "interval": "+1.203", "catching": true, "sectors": [{ "Value": "28.201", "OverallFastest": false, "PersonalFastest": false }, { "Value": "31.920", "OverallFastest": false, "PersonalFastest": false }, { "Value": "16.311", "OverallFastest": false, "PersonalFastest": false }], "last_lap": { "Value": "1:16.432" }, "best_lap": { "Value": "1:16.010" }, "tyre_compound": "MEDIUM", "tyre_is_new": false, "stint_laps": 12, "pit_count": 0, "in_pit": false, "retired": false, "personal_best_lap": null },
+          "16": { "position": "3", "gap_to_leader": "+4.556", "interval": "+3.353", "catching": false, "sectors": [{ "Value": "28.340", "OverallFastest": false, "PersonalFastest": false }, { "Value": "32.011", "OverallFastest": false, "PersonalFastest": false }, { "Value": "16.402", "OverallFastest": false, "PersonalFastest": false }], "last_lap": { "Value": "1:16.753" }, "best_lap": { "Value": "1:16.301" }, "tyre_compound": "MEDIUM", "tyre_is_new": false, "stint_laps": 12, "pit_count": 0, "in_pit": false, "retired": false, "personal_best_lap": null },
+          "44": { "position": "4", "gap_to_leader": "+8.912", "interval": "+4.356", "catching": false, "sectors": [{ "Value": "28.501", "OverallFastest": false, "PersonalFastest": false }, { "Value": "32.204", "OverallFastest": false, "PersonalFastest": false }, { "Value": "16.512", "OverallFastest": false, "PersonalFastest": false }], "last_lap": { "Value": "1:17.109" }, "best_lap": { "Value": "1:16.688" }, "tyre_compound": "HARD", "tyre_is_new": false, "stint_laps": 5, "pit_count": 1, "in_pit": false, "retired": false, "personal_best_lap": null }
+        },
+        "positions": {
+          "1": { "x": 3200, "y": 400, "z": 0, "status": "OnTrack" },
+          "4": { "x": 3000, "y": 900, "z": 0, "status": "OnTrack" },
+          "16": { "x": 2700, "y": 1400, "z": 0, "status": "OnTrack" },
+          "44": { "x": 2300, "y": 1800, "z": 0, "status": "OnTrack" }
+        },
+        "telemetry": {
+          "1": { "rpm": 11200, "speed": 298, "gear": 7, "throttle": 92, "brake": 0, "drs": 1 },
+          "4": { "rpm": 11050, "speed": 291, "gear": 7, "throttle": 88, "brake": 0, "drs": 0 },
+          "16": { "rpm": 10800, "speed": 285, "gear": 6, "throttle": 85, "brake": 0, "drs": 0 },
+          "44": { "rpm": 10600, "speed": 279, "gear": 6, "throttle": 80, "brake": 5, "drs": 0 }
+        },
+        "track_status": { "Status": "1", "Message": "AllClear" },
+        "race_control": [{ "Category": "Flag", "Message": "GREEN LIGHT - TRACK CLEAR" }],
+        "weather": { "AirTemp": "24.5", "TrackTemp": "31.2", "Humidity": "48", "Rainfall": "0" }
+      }
+    },
+    {
+      "atMs": 6000,
+      "snapshot": {
+        "connection_status": "connected",
+        "is_live": true,
+        "session_info": { "Meeting": { "Name": "Demo Grand Prix" }, "Type": "Race" },
+        "drivers": {
+          "1": { "racing_number": "1", "tla": "VER", "full_name": "Max Verstappen", "team_name": "Red Bull Racing", "team_colour": "#3671C6", "line": 1 },
+          "4": { "racing_number": "4", "tla": "NOR", "full_name": "Lando Norris", "team_name": "McLaren", "team_colour": "#FF8000", "line": 2 },
+          "16": { "racing_number": "16", "tla": "LEC", "full_name": "Charles Leclerc", "team_name": "Ferrari", "team_colour": "#E80020", "line": 3 },
+          "44": { "racing_number": "44", "tla": "HAM", "full_name": "Lewis Hamilton", "team_name": "Mercedes", "team_colour": "#27F4D2", "line": 4 }
+        },
+        "timing": {
+          "1": { "position": "1", "gap_to_leader": null, "interval": null, "catching": false, "sectors": [{ "Value": "28.098", "OverallFastest": false, "PersonalFastest": false }, { "Value": "31.870", "OverallFastest": false, "PersonalFastest": false }, { "Value": "16.190", "OverallFastest": false, "PersonalFastest": false }], "last_lap": { "Value": "1:16.158" }, "best_lap": { "Value": "1:15.870" }, "tyre_compound": "MEDIUM", "tyre_is_new": false, "stint_laps": 13, "pit_count": 0, "in_pit": false, "retired": false, "personal_best_lap": null },
+          "4": { "position": "2", "gap_to_leader": "+0.842", "interval": "+0.842", "catching": true, "sectors": [{ "Value": "27.950", "OverallFastest": true, "PersonalFastest": false }, { "Value": "31.605", "OverallFastest": false, "PersonalFastest": true }, { "Value": "16.087", "OverallFastest": false, "PersonalFastest": false }], "last_lap": { "Value": "1:15.642" }, "best_lap": { "Value": "1:15.642" }, "tyre_compound": "MEDIUM", "tyre_is_new": false, "stint_laps": 13, "pit_count": 0, "in_pit": false, "retired": false, "personal_best_lap": null },
+          "16": { "position": "3", "gap_to_leader": "+4.201", "interval": "+3.359", "catching": false, "sectors": [{ "Value": "28.310", "OverallFastest": false, "PersonalFastest": false }, { "Value": "31.990", "OverallFastest": false, "PersonalFastest": false }, { "Value": "16.380", "OverallFastest": false, "PersonalFastest": false }], "last_lap": { "Value": "1:16.680" }, "best_lap": { "Value": "1:16.301" }, "tyre_compound": "MEDIUM", "tyre_is_new": false, "stint_laps": 13, "pit_count": 0, "in_pit": false, "retired": false, "personal_best_lap": null },
+          "44": { "position": "4", "gap_to_leader": "+8.512", "interval": "+4.311", "catching": false, "sectors": [{ "Value": "28.470", "OverallFastest": false, "PersonalFastest": false }, { "Value": "32.150", "OverallFastest": false, "PersonalFastest": false }, { "Value": "16.480", "OverallFastest": false, "PersonalFastest": false }], "last_lap": { "Value": "1:17.020" }, "best_lap": { "Value": "1:16.688" }, "tyre_compound": "HARD", "tyre_is_new": false, "stint_laps": 6, "pit_count": 1, "in_pit": false, "retired": false, "personal_best_lap": null }
+        },
+        "positions": {
+          "1": { "x": 3400, "y": 700, "z": 0, "status": "OnTrack" },
+          "4": { "x": 3300, "y": 1150, "z": 0, "status": "OnTrack" },
+          "16": { "x": 2950, "y": 1700, "z": 0, "status": "OnTrack" },
+          "44": { "x": 2500, "y": 2050, "z": 0, "status": "OnTrack" }
+        },
+        "telemetry": {
+          "1": { "rpm": 11300, "speed": 302, "gear": 8, "throttle": 95, "brake": 0, "drs": 1 },
+          "4": { "rpm": 11400, "speed": 306, "gear": 8, "throttle": 97, "brake": 0, "drs": 1 },
+          "16": { "rpm": 10900, "speed": 288, "gear": 6, "throttle": 86, "brake": 0, "drs": 0 },
+          "44": { "rpm": 10700, "speed": 282, "gear": 6, "throttle": 82, "brake": 3, "drs": 0 }
+        },
+        "track_status": { "Status": "1", "Message": "AllClear" },
+        "race_control": [{ "Category": "Flag", "Message": "GREEN LIGHT - TRACK CLEAR" }],
+        "weather": { "AirTemp": "24.6", "TrackTemp": "31.4", "Humidity": "48", "Rainfall": "0" }
+      }
+    },
+    {
+      "atMs": 12000,
+      "snapshot": {
+        "connection_status": "connected",
+        "is_live": true,
+        "session_info": { "Meeting": { "Name": "Demo Grand Prix" }, "Type": "Race" },
+        "drivers": {
+          "1": { "racing_number": "1", "tla": "VER", "full_name": "Max Verstappen", "team_name": "Red Bull Racing", "team_colour": "#3671C6", "line": 1 },
+          "4": { "racing_number": "4", "tla": "NOR", "full_name": "Lando Norris", "team_name": "McLaren", "team_colour": "#FF8000", "line": 2 },
+          "16": { "racing_number": "16", "tla": "LEC", "full_name": "Charles Leclerc", "team_name": "Ferrari", "team_colour": "#E80020", "line": 3 },
+          "44": { "racing_number": "44", "tla": "HAM", "full_name": "Lewis Hamilton", "team_name": "Mercedes", "team_colour": "#27F4D2", "line": 4 }
+        },
+        "timing": {
+          "1": { "position": "1", "gap_to_leader": null, "interval": null, "catching": false, "sectors": [{ "Value": "28.050", "OverallFastest": false, "PersonalFastest": false }, { "Value": "31.780", "OverallFastest": false, "PersonalFastest": false }, { "Value": "16.150", "OverallFastest": false, "PersonalFastest": false }], "last_lap": { "Value": "1:15.980" }, "best_lap": { "Value": "1:15.870" }, "tyre_compound": "MEDIUM", "tyre_is_new": false, "stint_laps": 14, "pit_count": 0, "in_pit": false, "retired": false, "personal_best_lap": null },
+          "4": { "position": "2", "gap_to_leader": "+2.401", "interval": "+2.401", "catching": false, "sectors": [{ "Value": "28.020", "OverallFastest": false, "PersonalFastest": false }, { "Value": "31.650", "OverallFastest": false, "PersonalFastest": true }, { "Value": "16.100", "OverallFastest": false, "PersonalFastest": false }], "last_lap": { "Value": "1:15.770" }, "best_lap": { "Value": "1:15.642" }, "tyre_compound": "MEDIUM", "tyre_is_new": false, "stint_laps": 14, "pit_count": 0, "in_pit": false, "retired": false, "personal_best_lap": null },
+          "16": { "position": "3", "gap_to_leader": "+38.401", "interval": "+36.000", "catching": false, "sectors": [{ "Value": "0", "OverallFastest": false, "PersonalFastest": false }, { "Value": "0", "OverallFastest": false, "PersonalFastest": false }, { "Value": "0", "OverallFastest": false, "PersonalFastest": false }], "last_lap": { "Value": "1:16.680" }, "best_lap": { "Value": "1:16.301" }, "tyre_compound": "HARD", "tyre_is_new": true, "stint_laps": 0, "pit_count": 1, "in_pit": true, "retired": false, "personal_best_lap": null },
+          "44": { "position": "4", "gap_to_leader": "+9.812", "interval": "+7.411", "catching": false, "sectors": [{ "Value": "28.320", "OverallFastest": false, "PersonalFastest": false }, { "Value": "31.980", "OverallFastest": false, "PersonalFastest": true }, { "Value": "16.320", "OverallFastest": false, "PersonalFastest": false }], "last_lap": { "Value": "1:16.620" }, "best_lap": { "Value": "1:16.620" }, "tyre_compound": "HARD", "tyre_is_new": false, "stint_laps": 7, "pit_count": 1, "in_pit": false, "retired": false, "personal_best_lap": null }
+        },
+        "positions": {
+          "1": { "x": 3550, "y": 1100, "z": 0, "status": "OnTrack" },
+          "4": { "x": 3480, "y": 1500, "z": 0, "status": "OnTrack" },
+          "16": { "x": 2000, "y": 2200, "z": 0, "status": "InPit" },
+          "44": { "x": 2700, "y": 2350, "z": 0, "status": "OnTrack" }
+        },
+        "telemetry": {
+          "1": { "rpm": 11250, "speed": 300, "gear": 7, "throttle": 93, "brake": 0, "drs": 0 },
+          "4": { "rpm": 11150, "speed": 294, "gear": 7, "throttle": 90, "brake": 0, "drs": 1 },
+          "16": { "rpm": 3200, "speed": 40, "gear": 2, "throttle": 20, "brake": 60, "drs": 0 },
+          "44": { "rpm": 10850, "speed": 284, "gear": 6, "throttle": 84, "brake": 2, "drs": 0 }
+        },
+        "track_status": { "Status": "1", "Message": "AllClear" },
+        "race_control": [
+          { "Category": "Flag", "Message": "GREEN LIGHT - TRACK CLEAR" },
+          { "Category": "Other", "Message": "CAR 16 (LEC) PIT LANE ENTRY" }
+        ],
+        "weather": { "AirTemp": "24.7", "TrackTemp": "31.6", "Humidity": "47", "Rainfall": "0" }
+      }
+    },
+    {
+      "atMs": 18000,
+      "snapshot": {
+        "connection_status": "connected",
+        "is_live": true,
+        "session_info": { "Meeting": { "Name": "Demo Grand Prix" }, "Type": "Race" },
+        "drivers": {
+          "1": { "racing_number": "1", "tla": "VER", "full_name": "Max Verstappen", "team_name": "Red Bull Racing", "team_colour": "#3671C6", "line": 1 },
+          "4": { "racing_number": "4", "tla": "NOR", "full_name": "Lando Norris", "team_name": "McLaren", "team_colour": "#FF8000", "line": 2 },
+          "16": { "racing_number": "16", "tla": "LEC", "full_name": "Charles Leclerc", "team_name": "Ferrari", "team_colour": "#E80020", "line": 3 },
+          "44": { "racing_number": "44", "tla": "HAM", "full_name": "Lewis Hamilton", "team_name": "Mercedes", "team_colour": "#27F4D2", "line": 4 }
+        },
+        "timing": {
+          "1": { "position": "1", "gap_to_leader": null, "interval": null, "catching": false, "sectors": [{ "Value": "27.980", "OverallFastest": false, "PersonalFastest": false }, { "Value": "31.700", "OverallFastest": false, "PersonalFastest": false }, { "Value": "16.100", "OverallFastest": false, "PersonalFastest": false }], "last_lap": { "Value": "1:15.780" }, "best_lap": { "Value": "1:15.780" }, "tyre_compound": "MEDIUM", "tyre_is_new": false, "stint_laps": 15, "pit_count": 0, "in_pit": false, "retired": false, "personal_best_lap": null },
+          "4": { "position": "2", "gap_to_leader": "+2.912", "interval": "+2.912", "catching": false, "sectors": [{ "Value": "27.870", "OverallFastest": true, "PersonalFastest": false }, { "Value": "31.542", "OverallFastest": true, "PersonalFastest": false }, { "Value": "16.055", "OverallFastest": true, "PersonalFastest": false }], "last_lap": { "Value": "1:15.512" }, "best_lap": { "Value": "1:15.512" }, "tyre_compound": "MEDIUM", "tyre_is_new": false, "stint_laps": 15, "pit_count": 0, "in_pit": false, "retired": false, "personal_best_lap": null },
+          "16": { "position": "3", "gap_to_leader": "+40.812", "interval": "+37.900", "catching": false, "sectors": [{ "Value": "29.410", "OverallFastest": false, "PersonalFastest": false }, { "Value": "33.200", "OverallFastest": false, "PersonalFastest": false }, { "Value": "17.010", "OverallFastest": false, "PersonalFastest": false }], "last_lap": { "Value": "1:19.620" }, "best_lap": { "Value": "1:16.301" }, "tyre_compound": "HARD", "tyre_is_new": true, "stint_laps": 1, "pit_count": 1, "in_pit": false, "retired": false, "personal_best_lap": null },
+          "44": { "position": "4", "gap_to_leader": "+11.102", "interval": "+8.311", "catching": false, "sectors": [{ "Value": "28.210", "OverallFastest": false, "PersonalFastest": false }, { "Value": "31.890", "OverallFastest": false, "PersonalFastest": false }, { "Value": "16.280", "OverallFastest": false, "PersonalFastest": false }], "last_lap": { "Value": "1:16.380" }, "best_lap": { "Value": "1:16.380" }, "tyre_compound": "HARD", "tyre_is_new": false, "stint_laps": 8, "pit_count": 1, "in_pit": false, "retired": false, "personal_best_lap": null }
+        },
+        "positions": {
+          "1": { "x": 3300, "y": 1650, "z": 0, "status": "OnTrack" },
+          "4": { "x": 3150, "y": 2050, "z": 0, "status": "OnTrack" },
+          "16": { "x": 2350, "y": 2450, "z": 0, "status": "OnTrack" },
+          "44": { "x": 2900, "y": 2650, "z": 0, "status": "OnTrack" }
+        },
+        "telemetry": {
+          "1": { "rpm": 11280, "speed": 301, "gear": 7, "throttle": 94, "brake": 0, "drs": 1 },
+          "4": { "rpm": 11380, "speed": 305, "gear": 8, "throttle": 96, "brake": 0, "drs": 1 },
+          "16": { "rpm": 10600, "speed": 270, "gear": 5, "throttle": 78, "brake": 4, "drs": 0 },
+          "44": { "rpm": 10900, "speed": 287, "gear": 6, "throttle": 85, "brake": 0, "drs": 0 }
+        },
+        "track_status": { "Status": "1", "Message": "AllClear" },
+        "race_control": [
+          { "Category": "Flag", "Message": "GREEN LIGHT - TRACK CLEAR" },
+          { "Category": "Other", "Message": "CAR 16 (LEC) PIT LANE EXIT" }
+        ],
+        "weather": { "AirTemp": "24.8", "TrackTemp": "31.9", "Humidity": "47", "Rainfall": "0" }
+      }
+    }
+  ]
+}

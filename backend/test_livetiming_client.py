@@ -1,3 +1,4 @@
+import asyncio
 import os
 import sys
 
@@ -174,3 +175,35 @@ async def test_run_reconnects_with_backoff_after_a_failed_connect_then_stops():
 
         connection_statuses = [p["connection_status"] for p in statuses if "connection_status" in p]
         assert connection_statuses == ["connecting", "disconnected", "reconnecting", "connected", "disconnected"]
+
+
+@pytest.mark.respx(base_url=NEGOTIATE_URL)
+async def test_run_emits_disconnected_status_before_reraising_cancelled_error():
+    with respx.mock:
+        respx.options(NEGOTIATE_URL).mock(return_value=httpx.Response(200))
+        respx.post(NEGOTIATE_URL, params={"negotiateVersion": "1"}).mock(
+            return_value=httpx.Response(200, json={"connectionToken": "tok-123"})
+        )
+
+        class _CancellingConnect:
+            def __call__(self, url, **kwargs):
+                return self
+
+            async def __aenter__(self):
+                raise asyncio.CancelledError()
+
+            async def __aexit__(self, *exc_info):
+                return False
+
+        statuses = []
+
+        async def on_patch(patch):
+            if "connection_status" in patch:
+                statuses.append(patch["connection_status"])
+
+        client = LiveTimingClient(LiveSessionState(), on_patch, ws_connect_fn=_CancellingConnect())
+
+        with pytest.raises(asyncio.CancelledError):
+            await client.run()
+
+        assert statuses == ["connecting", "disconnected"]

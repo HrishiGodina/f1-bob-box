@@ -141,6 +141,7 @@ class LiveTimingClient:
                 await self._connect_once()
                 attempt = 0  # a connection that made it to "connected" resets backoff
             except asyncio.CancelledError:
+                await self._emit_status("disconnected")
                 raise
             except Exception as exc:  # noqa: BLE001 - intentional: decision 5
                 logger.warning("live-timing connection dropped: %s", exc)
