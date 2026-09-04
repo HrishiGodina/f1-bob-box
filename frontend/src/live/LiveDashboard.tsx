@@ -98,7 +98,12 @@ export function LiveDashboard({ demoActive, onToggleDemo }: LiveDashboardProps) 
             </div>
 
             <div className="lg:col-span-4 space-y-10">
-              <TrackMap drivers={snapshot.drivers} positions={snapshot.positions} selectedDriver={selectedDriver} />
+              <TrackMap
+                drivers={snapshot.drivers}
+                positions={snapshot.positions}
+                selectedDriver={selectedDriver}
+                sessionName={snapshot.session_info.Meeting?.Name ?? null}
+              />
               <RaceControlFeed messages={snapshot.race_control} />
             </div>
           </div>

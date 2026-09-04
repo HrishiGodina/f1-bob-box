@@ -6,7 +6,7 @@
       "snapshot": {
         "connection_status": "connected",
         "is_live": true,
-        "session_info": { "Meeting": { "Name": "Demo Grand Prix" }, "Type": "Race" },
+        "session_info": { "Meeting": { "Name": "FORMULA 1 DEMO BAHRAIN GRAND PRIX" }, "Type": "Race" },
         "drivers": {
           "1": { "racing_number": "1", "tla": "VER", "full_name": "Max Verstappen", "team_name": "Red Bull Racing", "team_colour": "#3671C6", "line": 1 },
           "4": { "racing_number": "4", "tla": "NOR", "full_name": "Lando Norris", "team_name": "McLaren", "team_colour": "#FF8000", "line": 2 },
@@ -41,7 +41,7 @@
       "snapshot": {
         "connection_status": "connected",
         "is_live": true,
-        "session_info": { "Meeting": { "Name": "Demo Grand Prix" }, "Type": "Race" },
+        "session_info": { "Meeting": { "Name": "FORMULA 1 DEMO BAHRAIN GRAND PRIX" }, "Type": "Race" },
         "drivers": {
           "1": { "racing_number": "1", "tla": "VER", "full_name": "Max Verstappen", "team_name": "Red Bull Racing", "team_colour": "#3671C6", "line": 1 },
           "4": { "racing_number": "4", "tla": "NOR", "full_name": "Lando Norris", "team_name": "McLaren", "team_colour": "#FF8000", "line": 2 },
@@ -76,7 +76,7 @@
       "snapshot": {
         "connection_status": "connected",
         "is_live": true,
-        "session_info": { "Meeting": { "Name": "Demo Grand Prix" }, "Type": "Race" },
+        "session_info": { "Meeting": { "Name": "FORMULA 1 DEMO BAHRAIN GRAND PRIX" }, "Type": "Race" },
         "drivers": {
           "1": { "racing_number": "1", "tla": "VER", "full_name": "Max Verstappen", "team_name": "Red Bull Racing", "team_colour": "#3671C6", "line": 1 },
           "4": { "racing_number": "4", "tla": "NOR", "full_name": "Lando Norris", "team_name": "McLaren", "team_colour": "#FF8000", "line": 2 },
@@ -114,7 +114,7 @@
       "snapshot": {
         "connection_status": "connected",
         "is_live": true,
-        "session_info": { "Meeting": { "Name": "Demo Grand Prix" }, "Type": "Race" },
+        "session_info": { "Meeting": { "Name": "FORMULA 1 DEMO BAHRAIN GRAND PRIX" }, "Type": "Race" },
         "drivers": {
           "1": { "racing_number": "1", "tla": "VER", "full_name": "Max Verstappen", "team_name": "Red Bull Racing", "team_colour": "#3671C6", "line": 1 },
           "4": { "racing_number": "4", "tla": "NOR", "full_name": "Lando Norris", "team_name": "McLaren", "team_colour": "#FF8000", "line": 2 },

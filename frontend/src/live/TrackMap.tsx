@@ -1,6 +1,8 @@
 import { useMemo, useRef } from "react";
 import { motion } from "framer-motion";
 import type { DriverInfo, PositionEntry } from "./types";
+import { resolveCircuitKey, geoJsonToSvgPath, fallbackTrackPath } from "../circuits/track";
+import { CIRCUIT_GEOJSON } from "../circuits";
 
 interface Bounds {
   minX: number;
@@ -36,10 +38,23 @@ export interface TrackMapProps {
   drivers: Record<string, DriverInfo>;
   positions: Record<string, PositionEntry>;
   selectedDriver: string | null;
+  sessionName: string | null;
 }
 
-export function TrackMap({ drivers, positions, selectedDriver }: TrackMapProps) {
+export function TrackMap({ drivers, positions, selectedDriver, sessionName }: TrackMapProps) {
   const boundsRef = useRef<Bounds | null>(null);
+
+  // The dot positions below (points useMemo) are normalized into a fixed
+  // 400x400 space with a 20px pad on each side (normX/normY = frac*360+20,
+  // so they range 20..380). The track outline uses the same 400x400 space
+  // and matching pad so it lines up with where the dots are drawn.
+  const circuitKey = useMemo(() => resolveCircuitKey(sessionName), [sessionName]);
+  const trackPath = useMemo(() => {
+    if (circuitKey && CIRCUIT_GEOJSON[circuitKey]) {
+      return geoJsonToSvgPath(CIRCUIT_GEOJSON[circuitKey], 400, 400, 20);
+    }
+    return circuitKey ? fallbackTrackPath(circuitKey) : null;
+  }, [circuitKey]);
 
   const points = useMemo(() => {
     const withCoords = Object.entries(positions).filter(
@@ -70,7 +85,10 @@ export function TrackMap({ drivers, positions, selectedDriver }: TrackMapProps) 
         <h2 className="text-xs font-black uppercase tracking-[0.3em]">Grid Telemetry</h2>
       </div>
       <div className="relative w-full h-full border border-white/5 rounded-[2rem] bg-mkbhd-studio/50 backdrop-blur-sm">
-        <svg className="w-full h-full">
+        <svg className="w-full h-full" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid meet">
+          {trackPath && (
+            <path d={trackPath} stroke="white" strokeOpacity={0.12} strokeWidth={2} fill="none" />
+          )}
           {points.map((p) => {
             const driver = drivers[p.racingNumber];
             const isSelected = selectedDriver === p.racingNumber;
