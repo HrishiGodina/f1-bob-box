@@ -14,6 +14,8 @@ import "@fontsource/inter/700.css";
 import "@fontsource/inter/900.css";
 import { CIRCUIT_GEOJSON } from './circuits/index';
 import { LiveDashboard } from './live/LiveDashboard';
+import { loadOverride, saveOverride, resolveLiveView } from './live/liveView';
+import type { LiveOverride } from './live/liveView';
 
 const API_BASE = (import.meta as any).env?.VITE_API_BASE ?? "http://localhost:8000/api";
 
@@ -651,6 +653,7 @@ export default function App() {
   const [selectedCircuit, setSelectedCircuit] = useState<any>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const idleFetchedRef = useRef(false);
+  const [liveOverride, setLiveOverride] = useState<LiveOverride>(() => loadOverride(window.localStorage));
 
   const fetchStatus = async () => {
     try {
@@ -683,6 +686,19 @@ export default function App() {
     const interval = setInterval(fetchStatus, 30000);
     return () => clearInterval(interval);
   }, []);
+
+  const effectiveLive = resolveLiveView(liveOverride, status?.is_live ?? false);
+
+  const toggleLiveOverride = () => {
+    const next: LiveOverride = effectiveLive ? 'off' : 'live';
+    setLiveOverride(next);
+    saveOverride(window.localStorage, next);
+  };
+
+  const resetLiveOverrideToAuto = () => {
+    setLiveOverride(null);
+    saveOverride(window.localStorage, null);
+  };
 
   // Splash: 'logo' (pulse 1.8s) → 'expand' (scale to fill, 0.6s) → 'done'
   const [splashPhase, setSplashPhase] = useState<'logo' | 'expand' | 'done'>(loading ? 'logo' : 'done');
@@ -752,13 +768,25 @@ export default function App() {
           </div>
           
           <div className="flex items-center gap-6 pl-10 border-l border-white/10">
-            <motion.div 
-              animate={status?.is_live ? { opacity: [1, 0.6, 1] } : {}}
-              className={`flex items-center gap-3 px-6 py-2.5 rounded-full border text-[10px] font-black tracking-widest transition-all ${status?.is_live ? 'bg-mkbhd-red border-mkbhd-red shadow-xl shadow-mkbhd-red/20' : 'bg-white/5 border-white/10 text-mkbhd-gray'}`}
+            {liveOverride !== null && (
+              <button
+                type="button"
+                onClick={resetLiveOverrideToAuto}
+                className="text-[9px] font-black uppercase tracking-widest text-mkbhd-gray hover:text-white transition-colors px-3 py-1 rounded-full border border-white/10 cursor-pointer"
+              >
+                AUTO
+              </button>
+            )}
+            <motion.button
+              type="button"
+              onClick={toggleLiveOverride}
+              aria-pressed={effectiveLive}
+              animate={effectiveLive ? { opacity: [1, 0.6, 1] } : {}}
+              className={`flex items-center gap-3 px-6 py-2.5 rounded-full border text-[10px] font-black tracking-widest transition-all cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mkbhd-red ${effectiveLive ? 'bg-mkbhd-red border-mkbhd-red shadow-xl shadow-mkbhd-red/20' : 'bg-white/5 border-white/10 text-mkbhd-gray'}`}
             >
-              <div className={`w-2 h-2 rounded-full ${status?.is_live ? 'bg-white shadow-[0_0_10px_white]' : 'bg-mkbhd-gray'}`} />
-              {status?.is_live ? 'LIVE SESSION' : 'OFFLINE'}
-            </motion.div>
+              <div className={`w-2 h-2 rounded-full ${effectiveLive ? 'bg-white shadow-[0_0_10px_white]' : 'bg-mkbhd-gray'}`} />
+              {effectiveLive ? 'LIVE SESSION' : 'OFFLINE'}
+            </motion.button>
             <button className="lg:hidden p-3 bg-white/5 rounded-xl text-white" onClick={() => setMobileMenuOpen(true)}><Menu size={24} /></button>
           </div>
         </div>
@@ -778,7 +806,7 @@ export default function App() {
 
       <main className="p-8 md:p-16 max-w-[1920px] mx-auto overflow-hidden">
         <AnimatePresence mode="wait">
-          {status?.is_live ? (
+          {effectiveLive ? (
             <motion.div key="live" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
                <LiveDashboard />
             </motion.div>
