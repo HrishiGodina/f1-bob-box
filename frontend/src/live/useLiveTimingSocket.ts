@@ -19,10 +19,12 @@ const RECONNECT_DELAY_MS = 3000;
 // reflect the backend's link to F1, not this hook's own link to the
 // backend — that link's health is handled transparently by the reconnect
 // loop below.
-export function useLiveTimingSocket(): LiveSnapshot {
+export function useLiveTimingSocket(enabled: boolean = true): LiveSnapshot {
   const [state, setState] = useState<LiveSnapshot>(INITIAL_LIVE_STATE);
 
   useEffect(() => {
+    if (!enabled) return;
+
     let socket: WebSocket | null = null;
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
     let stopped = false;
@@ -57,7 +59,7 @@ export function useLiveTimingSocket(): LiveSnapshot {
       if (reconnectTimer) clearTimeout(reconnectTimer);
       socket?.close();
     };
-  }, []);
+  }, [enabled]);
 
   return state;
 }
