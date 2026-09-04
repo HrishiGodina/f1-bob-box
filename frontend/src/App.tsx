@@ -737,7 +737,7 @@ export default function App() {
           <div className="hidden lg:flex gap-12 text-[11px] font-black uppercase tracking-[0.3em] text-mkbhd-gray font-bold">
              {[
                { name: 'Broadcast', id: 'news' },
-               { name: 'Telemetry', id: 'standings' },
+               { name: 'Telemetry', id: 'telemetry' },
                { name: 'Analytics', id: 'archive' },
                { name: 'Standings', id: 'standings' }
              ].map(item => (
