@@ -24,8 +24,9 @@ async def test_negotiate_returns_the_connection_token():
             return_value=httpx.Response(200, json={"connectionToken": "tok-123"})
         )
         client = LiveTimingClient(LiveSessionState(), _noop_on_patch)
-        token = await client._negotiate()
+        token, cookie_header = await client._negotiate()
         assert token == "tok-123"
+        assert cookie_header == "sess=abc"
 
 
 def test_apply_topic_is_fail_soft_on_a_bad_payload():
@@ -108,6 +109,24 @@ async def test_connect_once_sends_protocol_init_then_subscribe_with_every_topic(
             "CarData.z", "Position.z",
         ]]
         assert any(p.get("connection_status") == "connected" for p in patches)
+
+
+@pytest.mark.respx(base_url=NEGOTIATE_URL)
+async def test_connect_once_forwards_the_alb_sticky_session_cookie_to_the_websocket():
+    with respx.mock:
+        respx.options(NEGOTIATE_URL).mock(return_value=httpx.Response(200, headers={"set-cookie": "AWSALB=xyz"}))
+        respx.post(NEGOTIATE_URL, params={"negotiateVersion": "1"}).mock(
+            return_value=httpx.Response(200, json={"connectionToken": "tok-123"})
+        )
+        fake_conn = _FakeConnection(frames=[])
+        fake_connect = _FakeConnect(connections=[fake_conn])
+
+        client = LiveTimingClient(LiveSessionState(), _noop_on_patch, ws_connect_fn=fake_connect)
+        await client._connect_once()
+
+        headers = fake_connect.calls[0][1]["additional_headers"]
+        assert headers["Cookie"] == "AWSALB=xyz"
+        assert headers["User-Agent"] == CLIENT_HEADERS["User-Agent"]
 
 
 @pytest.mark.respx(base_url=NEGOTIATE_URL)

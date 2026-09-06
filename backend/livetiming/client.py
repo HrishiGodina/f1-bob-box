@@ -53,14 +53,22 @@ class LiveTimingClient:
         self._ws_connect_fn = ws_connect_fn
         self._stopped = False
 
-    async def _negotiate(self) -> str:
+    async def _negotiate(self) -> Tuple[str, str]:
         """OPTIONS then POST, sharing one httpx.AsyncClient so the cookie
-        the OPTIONS response sets is attached to the POST automatically."""
+        the OPTIONS response sets is attached to the POST automatically.
+
+        Negotiate sits behind an AWS ALB that hands back a sticky-session
+        cookie (AWSALB/AWSALBCORS) alongside the connection token. The
+        WebSocket upgrade must carry that same cookie back, or the ALB
+        routes it to a different backend node than the one that minted
+        the token, which rejects it with HTTP 404. Returns the token and
+        a `Cookie` header value (empty string if no cookie was set)."""
         async with httpx.AsyncClient(headers=CLIENT_HEADERS) as http:
             await http.options(self._negotiate_url)
             response = await http.post(self._negotiate_url, params={"negotiateVersion": "1"})
             response.raise_for_status()
-            return response.json()["connectionToken"]
+            cookie_header = "; ".join(f"{c.name}={c.value}" for c in http.cookies.jar)
+            return response.json()["connectionToken"], cookie_header
 
     def _apply_topic(self, topic: str, payload: Any) -> Dict[str, Any]:
         """The one place a topic's payload reaches LiveSessionState.apply
@@ -103,14 +111,17 @@ class LiveTimingClient:
             await ws.send(json.dumps({"type": 6}) + RECORD_SEPARATOR)
 
     async def _connect_once(self) -> None:
-        connection_token = await self._negotiate()
+        connection_token, cookie_header = await self._negotiate()
         url = "{}?id={}".format(self._ws_url, connection_token)
+        headers = dict(CLIENT_HEADERS)
+        if cookie_header:
+            headers["Cookie"] = cookie_header
         # No read timeout anywhere in this method or in ws_connect's own
         # kwargs — an idle-but-healthy connection (quiet practice session,
         # red flag) must never be torn down for inactivity. ping_interval/
         # ping_timeout govern the WebSocket protocol-level keepalive only.
         async with self._ws_connect_fn(
-            url, additional_headers=CLIENT_HEADERS, max_size=None,
+            url, additional_headers=headers, max_size=None,
             ping_interval=20, ping_timeout=20,
         ) as ws:
             await ws.send(json.dumps({"protocol": "json", "version": 1}) + RECORD_SEPARATOR)

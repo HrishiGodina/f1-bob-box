@@ -84,15 +84,42 @@ export const fallbackTrackPath = (circuitId: string) => {
   return d;
 };
 
-// Lowercased, underscore-free circuit slugs from CIRCUIT_GEOJSON, longest first,
-// so "red_bull_ring" matches before a shorter unrelated substring would.
-// Each keyword is matched on word boundaries (not as a plain substring) so
-// e.g. "spa" doesn't false-positive inside "ESPANA"/"SPANISH".
+// Most GP official/meeting names use the host country, not the circuit
+// (e.g. "Italian Grand Prix" never says "Monza") — the slug alone almost
+// never matches. These aliases cover the country/GP-name keyword for each
+// circuit where that mapping is unambiguous on the current calendar.
+// Deliberately omitted: Spain, where both `catalunya` and `madring` could
+// plausibly host the Spanish GP depending on the season — an alias here
+// risks a confident wrong match, which is worse than falling back to none.
+const GP_NAME_ALIASES: Record<string, string[]> = {
+  monza: ["italy", "italian", "italia"],
+  jeddah: ["saudi arabia", "saudi"],
+  albert_park: ["australia", "australian"],
+  suzuka: ["japan", "japanese"],
+  shanghai: ["china", "chinese"],
+  imola: ["emilia romagna"],
+  villeneuve: ["canada", "canadian"],
+  red_bull_ring: ["austria", "austrian"],
+  silverstone: ["britain", "british"],
+  hungaroring: ["hungary", "hungarian"],
+  spa: ["belgium", "belgian"],
+  zandvoort: ["netherlands", "dutch"],
+  marina_bay: ["singapore"],
+  americas: ["united states"],
+  rodriguez: ["mexico", "mexican"],
+  interlagos: ["brazil", "brazilian", "sao paulo"],
+  losail: ["qatar"],
+  yas_marina: ["abu dhabi"],
+};
+
+// Lowercased, underscore-free circuit slugs from CIRCUIT_GEOJSON, plus the
+// GP-name aliases above, longest keyword first so e.g. "red bull ring"
+// matches before a shorter unrelated substring would. Each keyword is
+// matched on word boundaries (not as a plain substring) so e.g. "spa"
+// doesn't false-positive inside "ESPANA"/"SPANISH".
 const CIRCUIT_KEYWORDS = Object.keys(CIRCUIT_GEOJSON)
-  .map((slug) => {
-    const keyword = slug.replace(/_/g, " ");
-    return { slug, keyword, pattern: new RegExp(`\\b${keyword}\\b`) };
-  })
+  .flatMap((slug) => [slug.replace(/_/g, " "), ...(GP_NAME_ALIASES[slug] ?? [])].map((keyword) => ({ slug, keyword })))
+  .map(({ slug, keyword }) => ({ slug, keyword, pattern: new RegExp(`\\b${keyword}\\b`) }))
   .sort((a, b) => b.keyword.length - a.keyword.length);
 
 /**

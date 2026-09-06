@@ -243,5 +243,21 @@ describe('track utilities', () => {
       expect(resolveCircuitKey('FORMULA 1 ARAMCO GRAN PREMIO DE ESPANA 2026')).not.toBe('spa');
       expect(resolveCircuitKey('FORMULA 1 SPANISH GRAND PRIX 2026')).not.toBe('spa');
     });
+
+    it('should match GP names that use the host country rather than the circuit name', () => {
+      // Most official/meeting names never mention the circuit itself —
+      // e.g. the real live feed reports "Italian Grand Prix" for Monza.
+      expect(resolveCircuitKey('Italian Grand Prix')).toBe('monza');
+      expect(resolveCircuitKey("FORMULA 1 PIRELLI GRAN PREMIO D’ITALIA 2026")).toBe('monza');
+      expect(resolveCircuitKey('FORMULA 1 BELGIAN GRAND PRIX 2026')).toBe('spa');
+      expect(resolveCircuitKey('FORMULA 1 BRITISH GRAND PRIX 2026')).toBe('silverstone');
+      expect(resolveCircuitKey('FORMULA 1 JAPANESE GRAND PRIX 2026')).toBe('suzuka');
+      expect(resolveCircuitKey('FORMULA 1 AZERBAIJAN GRAND PRIX 2026')).toBeNull();
+    });
+
+    it('does not alias Spain to any circuit, since Catalunya and Madring are both plausible', () => {
+      expect(resolveCircuitKey('FORMULA 1 SPANISH GRAND PRIX 2026')).toBeNull();
+      expect(resolveCircuitKey('FORMULA 1 ARAMCO GRAN PREMIO DE ESPANA 2026')).toBeNull();
+    });
   });
 });
