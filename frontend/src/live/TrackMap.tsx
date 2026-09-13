@@ -1,8 +1,9 @@
 import { useMemo, useRef } from "react";
 import { motion } from "framer-motion";
 import type { DriverInfo, PositionEntry, WeatherInfo } from "./types";
-import { resolveCircuitKey, geoJsonToSvgPath, fallbackTrackPath } from "../circuits/track";
+import { resolveCircuitKey, geoJsonToSvgPath, geoJsonToScreenPoints, fallbackTrackPath } from "../circuits/track";
 import { CIRCUIT_GEOJSON } from "../circuits";
+import START_FINISH from "../circuits/start_finish.json";
 
 interface Bounds {
   minX: number;
@@ -71,6 +72,40 @@ export function TrackMap({ drivers, positions, selectedDriver, sessionName, weat
     return circuitKey ? fallbackTrackPath(circuitKey) : null;
   }, [circuitKey]);
 
+  const startLine = useMemo(() => {
+    if (!circuitKey || !CIRCUIT_GEOJSON[circuitKey]) return null;
+    const sf = (START_FINISH as Record<string, { fx: number; fy: number }>)[circuitKey];
+    if (!sf) return null;
+    const pathPoints = geoJsonToScreenPoints(CIRCUIT_GEOJSON[circuitKey], 400, 400, 20, true);
+    if (pathPoints.length < 2) return null;
+    const sx = 20 + sf.fx * 360;
+    const sy = 20 + (1 - sf.fy) * 360;
+    let best: { d: number; px: number; py: number; dx: number; dy: number } | null = null;
+    for (let i = 1; i < pathPoints.length; i++) {
+      const [ax, ay] = pathPoints[i - 1];
+      const [bx, by] = pathPoints[i];
+      const dx = bx - ax;
+      const dy = by - ay;
+      const len2 = dx * dx + dy * dy || 1;
+      const t = Math.max(0, Math.min(1, ((sx - ax) * dx + (sy - ay) * dy) / len2));
+      const px = ax + t * dx;
+      const py = ay + t * dy;
+      const d = (px - sx) ** 2 + (py - sy) ** 2;
+      if (!best || d < best.d) best = { d, px, py, dx, dy };
+    }
+    if (!best) return null;
+    const len = Math.hypot(best.dx, best.dy) || 1;
+    const nx = -best.dy / len;
+    const ny = best.dx / len;
+    const half = 20;
+    return {
+      x1: best.px - nx * half,
+      y1: best.py - ny * half,
+      x2: best.px + nx * half,
+      y2: best.py + ny * half,
+    };
+  }, [circuitKey]);
+
   const points = useMemo(() => {
     const withCoords = Object.entries(positions).filter(
       (entry): entry is [string, PositionEntry & { x: number; y: number }] =>
@@ -106,6 +141,12 @@ export function TrackMap({ drivers, positions, selectedDriver, sessionName, weat
         <svg className="w-full h-full" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid meet">
           {trackPath && (
             <path d={trackPath} stroke="white" strokeOpacity={0.12} strokeWidth={2} fill="none" />
+          )}
+          {startLine && (
+            <>
+              <line x1={startLine.x1} y1={startLine.y1} x2={startLine.x2} y2={startLine.y2} stroke="black" strokeOpacity={0.6} strokeWidth={6} strokeLinecap="round" />
+              <line x1={startLine.x1} y1={startLine.y1} x2={startLine.x2} y2={startLine.y2} stroke="white" strokeWidth={3.5} strokeLinecap="butt" strokeDasharray="5 3" />
+            </>
           )}
           {points.map((p) => {
             const driver = drivers[p.racingNumber];

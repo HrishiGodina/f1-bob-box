@@ -13,6 +13,38 @@ export const CIRCUIT_ID_MAP: Record<string, string> = {
   madring: 'madring',
 };
 
+export const geoJsonToScreenPoints = (geojson: any, w = 440, h = 310, pad = 24, stretch = false): [number, number][] => {
+  try {
+    const feat = geojson?.features?.[0];
+    if (!feat) return [];
+    const coords: [number, number][] = feat.geometry.type === 'LineString'
+      ? feat.geometry.coordinates
+      : feat.geometry.coordinates[0];
+    if (!coords?.length) return [];
+
+    const lons = coords.map((c) => c[0]);
+    const lats = coords.map((c) => c[1]);
+    const minLon = Math.min(...lons), maxLon = Math.max(...lons);
+    const minLat = Math.min(...lats), maxLat = Math.max(...lats);
+    const spanLon = maxLon - minLon || 1;
+    const spanLat = maxLat - minLat || 1;
+    const scaleX = (w - pad * 2) / spanLon;
+    const scaleY = (h - pad * 2) / spanLat;
+    const uniform = Math.min(scaleX, scaleY);
+    const scaleForX = stretch ? scaleX : uniform;
+    const scaleForY = stretch ? scaleY : uniform;
+    const offX = pad + ((w - pad * 2) - spanLon * scaleForX) / 2;
+    const offY = pad + ((h - pad * 2) - spanLat * scaleForY) / 2;
+
+    return coords.map(([lon, lat]) => [
+      offX + (lon - minLon) * scaleForX,
+      offY + (maxLat - lat) * scaleForY,
+    ] as [number, number]);
+  } catch {
+    return [];
+  }
+};
+
 /**
  * Convert GeoJSON feature geometry to SVG path string with automatic scaling/centering.
  * Handles both LineString and Polygon geometries. Returns empty string on error.
@@ -26,28 +58,8 @@ export const geoJsonToSvgPath = (geojson: any, w = 440, h = 310, pad = 24, stret
       : feat.geometry.coordinates[0];
     if (!coords?.length) return '';
 
-    const lons = coords.map((c) => c[0]);
-    const lats = coords.map((c) => c[1]);
-    const minLon = Math.min(...lons), maxLon = Math.max(...lons);
-    const minLat = Math.min(...lats), maxLat = Math.max(...lats);
-    const spanLon = maxLon - minLon || 1;
-    const spanLat = maxLat - minLat || 1;
-    // `stretch` fills the box on both axes independently (no aspect-ratio
-    // lock) — for a decorative backdrop like TrackMap's square card, where
-    // filling the box matters more than the track's real proportions.
-    const scaleX = (w - pad * 2) / spanLon;
-    const scaleY = (h - pad * 2) / spanLat;
-    const uniform = Math.min(scaleX, scaleY);
-    const scaleForX = stretch ? scaleX : uniform;
-    const scaleForY = stretch ? scaleY : uniform;
-    const offX = pad + ((w - pad * 2) - spanLon * scaleForX) / 2;
-    const offY = pad + ((h - pad * 2) - spanLat * scaleForY) / 2;
-
-    const pts = coords.map(([lon, lat]) => [
-      offX + (lon - minLon) * scaleForX,
-      offY + (maxLat - lat) * scaleForY,
-    ] as [number, number]);
-
+    const pts = geoJsonToScreenPoints(geojson, w, h, pad, stretch);
+    if (!pts.length) return '';
     return pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ') + ' Z';
   } catch {
     return '';
