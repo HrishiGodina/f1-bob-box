@@ -87,6 +87,19 @@ class LiveSessionState:
         self._raw: Dict[str, Any] = {}
         self._connection_status = "disconnected"
         self._last_message_at: Optional[float] = None
+        # Each driver's earliest-seen TimingData Position this session,
+        # captured once and never overwritten — this process's LiveSessionState
+        # lives for exactly one session (main.py's lifespan creates one
+        # instance per process run), so whichever position we observe first
+        # for a driver is the closest available proxy for their actual
+        # starting grid slot (it already reflects any grid penalty, unlike
+        # the raw qualifying classification). Capturing this here, once,
+        # server-side — rather than per-browser-tab on the frontend — is
+        # what makes it correct for a viewer who opens the dashboard mid-race:
+        # every client gets the same baseline from the moment they connect,
+        # not whatever position happened to be current when their tab loaded.
+        self._starting_grid: Dict[str, str] = {}
+        self._session_identity: Optional[Any] = None
 
     def apply(self, topic: str, payload: Any) -> Dict[str, Any]:
         """Merge one topic's payload into the raw store and return the
@@ -97,9 +110,39 @@ class LiveSessionState:
         already means "adopt payload verbatim, minus any `_kf` keys"
         (verified in Task 2, Step 5). Always includes `is_live`, since
         every message can move `seconds_since_last_message()`."""
+        if topic == "SessionInfo":
+            self._maybe_reset_session(payload)
         self._raw[topic] = merge_delta(self._raw.get(topic), payload)
         self._touch()
+        if topic == "TimingData":
+            self._capture_starting_grid()
         return self._derive_patch_for_topic(topic)
+
+    def _maybe_reset_session(self, payload: Dict[str, Any]) -> None:
+        """Wipe all raw state on a session-identity change: merge_delta keeps
+        keys a new snapshot omits, so old-session values (e.g. last race's
+        final NumberOfPitStops) would otherwise leak into the new session.
+        Identity is read from the incoming payload only — mid-session
+        SessionInfo deltas (Status changes) carry no Meeting/Key and must
+        not trigger a wipe."""
+        meeting_key = (payload.get("Meeting") or {}).get("Key")
+        session_key = payload.get("Key")
+        if meeting_key is None or session_key is None:
+            return
+        identity = (meeting_key, session_key)
+        if identity != self._session_identity:
+            self._session_identity = identity
+            self._raw = {}
+            self._starting_grid = {}
+
+    def _capture_starting_grid(self) -> None:
+        lines = (self._raw.get("TimingData") or {}).get("Lines") or {}
+        for number, line in lines.items():
+            if number in self._starting_grid:
+                continue
+            position = (line or {}).get("Position")
+            if position:
+                self._starting_grid[number] = position
 
     def apply_many(self, topics: Dict[str, Any]) -> Dict[str, Any]:
         """Apply a `{topic: payload}` dict — used for the type:3 completion's
@@ -118,6 +161,8 @@ class LiveSessionState:
         patch: Dict[str, Any] = {"is_live": self.is_live()}
         for derived_key in self.TOPIC_TO_DERIVED.get(topic, ()):
             patch[derived_key] = getattr(self, "_derive_" + derived_key)()
+        if topic in ("SessionInfo", "TimingData"):
+            patch["starting_grid"] = dict(self._starting_grid)
         return patch
 
     def seconds_since_last_message(self) -> float:
@@ -166,6 +211,7 @@ class LiveSessionState:
             "track_status": self._derive_track_status(),
             "race_control": self._derive_race_control(),
             "weather": self._derive_weather(),
+            "starting_grid": dict(self._starting_grid),
         }
 
     def _derive_session_info(self) -> Dict[str, Any]:
@@ -232,12 +278,18 @@ class LiveSessionState:
         return result
 
     def _derive_positions(self) -> Dict[str, Any]:
-        """Position.z's raw shape is `{"Position": [<frame>, ...]}`; F1
-        replaces the whole array with a fresh one-element list on every
-        delta (it is a plain JSON array in the delta, not an index-keyed
-        dict, so merge_delta's "not a dict -> replace wholesale" rule
-        applies) — so the current tick is always the last frame."""
-        frames = (self._raw.get("Position.z") or {}).get("Position") or []
+        """Position.z's raw shape in the type:3 snapshot is
+        `{"Position": [<frame>, ...]}`. However, in type:1 stream deltas, F1
+        sends just the plain JSON array `[<frame>, ...]`. `merge_delta` replaces
+        the whole value if it's a list, so `self._raw["Position.z"]` transitions
+        from a dict to a list over the course of a live session."""
+        raw_pos = self._raw.get("Position.z")
+        frames = []
+        if isinstance(raw_pos, dict):
+            frames = raw_pos.get("Position") or []
+        elif isinstance(raw_pos, list):
+            frames = raw_pos
+
         if not frames:
             return {}
         entries = (frames[-1] or {}).get("Entries") or {}
@@ -251,7 +303,13 @@ class LiveSessionState:
         CarData.z's `Entries` array. Each car's `Channels` dict is keyed
         by a numeric channel id (JSON forces it to a string) that
         CAR_DATA_CHANNELS maps to a field name."""
-        frames = (self._raw.get("CarData.z") or {}).get("Entries") or []
+        raw_car = self._raw.get("CarData.z")
+        frames = []
+        if isinstance(raw_car, dict):
+            frames = raw_car.get("Entries") or []
+        elif isinstance(raw_car, list):
+            frames = raw_car
+
         if not frames:
             return {}
         cars = (frames[-1] or {}).get("Cars") or {}

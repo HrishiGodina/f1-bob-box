@@ -21,3 +21,8 @@ test_sc/
 
 # Editor
 .vscode/
+
+# Live-timing recordings
+backend/recordings/
+backend/.f1auth.json
+.serena/

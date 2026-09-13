@@ -17,6 +17,7 @@ def test_ws_live_sends_initial_snapshot_on_connect():
                 "connection_status": "disconnected", "is_live": False,
                 "session_info": {}, "drivers": {}, "timing": {}, "positions": {},
                 "telemetry": {}, "track_status": {}, "race_control": [], "weather": {},
+                "starting_grid": {},
             }
 
 

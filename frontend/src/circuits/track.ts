@@ -17,7 +17,7 @@ export const CIRCUIT_ID_MAP: Record<string, string> = {
  * Convert GeoJSON feature geometry to SVG path string with automatic scaling/centering.
  * Handles both LineString and Polygon geometries. Returns empty string on error.
  */
-export const geoJsonToSvgPath = (geojson: any, w = 440, h = 310, pad = 24): string => {
+export const geoJsonToSvgPath = (geojson: any, w = 440, h = 310, pad = 24, stretch = false): string => {
   try {
     const feat = geojson?.features?.[0];
     if (!feat) return '';
@@ -32,13 +32,20 @@ export const geoJsonToSvgPath = (geojson: any, w = 440, h = 310, pad = 24): stri
     const minLat = Math.min(...lats), maxLat = Math.max(...lats);
     const spanLon = maxLon - minLon || 1;
     const spanLat = maxLat - minLat || 1;
-    const scale = Math.min((w - pad * 2) / spanLon, (h - pad * 2) / spanLat);
-    const offX = pad + ((w - pad * 2) - spanLon * scale) / 2;
-    const offY = pad + ((h - pad * 2) - spanLat * scale) / 2;
+    // `stretch` fills the box on both axes independently (no aspect-ratio
+    // lock) — for a decorative backdrop like TrackMap's square card, where
+    // filling the box matters more than the track's real proportions.
+    const scaleX = (w - pad * 2) / spanLon;
+    const scaleY = (h - pad * 2) / spanLat;
+    const uniform = Math.min(scaleX, scaleY);
+    const scaleForX = stretch ? scaleX : uniform;
+    const scaleForY = stretch ? scaleY : uniform;
+    const offX = pad + ((w - pad * 2) - spanLon * scaleForX) / 2;
+    const offY = pad + ((h - pad * 2) - spanLat * scaleForY) / 2;
 
     const pts = coords.map(([lon, lat]) => [
-      offX + (lon - minLon) * scale,
-      offY + (maxLat - lat) * scale,
+      offX + (lon - minLon) * scaleForX,
+      offY + (maxLat - lat) * scaleForY,
     ] as [number, number]);
 
     return pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ') + ' Z';
@@ -88,9 +95,8 @@ export const fallbackTrackPath = (circuitId: string) => {
 // (e.g. "Italian Grand Prix" never says "Monza") — the slug alone almost
 // never matches. These aliases cover the country/GP-name keyword for each
 // circuit where that mapping is unambiguous on the current calendar.
-// Deliberately omitted: Spain, where both `catalunya` and `madring` could
-// plausibly host the Spanish GP depending on the season — an alias here
-// risks a confident wrong match, which is worse than falling back to none.
+// Spain maps to madring (the 2026+ Spanish GP host); catalunya stays
+// reachable via its own slug only.
 const GP_NAME_ALIASES: Record<string, string[]> = {
   monza: ["italy", "italian", "italia"],
   jeddah: ["saudi arabia", "saudi"],
@@ -110,6 +116,7 @@ const GP_NAME_ALIASES: Record<string, string[]> = {
   interlagos: ["brazil", "brazilian", "sao paulo"],
   losail: ["qatar"],
   yas_marina: ["abu dhabi"],
+  madring: ["spanish", "spain"],
 };
 
 // Lowercased, underscore-free circuit slugs from CIRCUIT_GEOJSON, plus the

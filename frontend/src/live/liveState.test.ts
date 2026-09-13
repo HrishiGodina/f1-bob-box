@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { INITIAL_LIVE_STATE, applyLivePatch, computeSessionBests, deriveWsUrl, parseLapTime } from "./liveState";
+import {
+  INITIAL_LIVE_STATE,
+  applyLivePatch,
+  computeMostPositionsGained,
+  computeSessionBests,
+  deriveWsUrl,
+  parseLapTime,
+} from "./liveState";
 import type { DriverInfo, TimingLine } from "./types";
 
 function mkLine(overrides: Partial<TimingLine> = {}): TimingLine {
@@ -116,5 +123,27 @@ describe("computeSessionBests", () => {
     const { fastestPace } = computeSessionBests(timing, drivers);
     expect(fastestPace?.tla).toBe("HAM");
     expect(fastestPace?.time).toBe("1:18.900");
+  });
+});
+
+describe("computeMostPositionsGained", () => {
+  const drivers = { "1": mkDriver("VER"), "44": mkDriver("HAM"), "16": mkDriver("LEC") };
+
+  it("picks the driver with the largest positive change", () => {
+    const changes = { "1": 1, "44": 3, "16": -2 };
+    const result = computeMostPositionsGained(changes, drivers);
+    expect(result?.tla).toBe("HAM");
+    expect(result?.gain).toBe(3);
+  });
+
+  it("returns null when nobody has gained places", () => {
+    const changes = { "1": 0, "44": -1 };
+    expect(computeMostPositionsGained(changes, drivers)).toBeNull();
+  });
+
+  it("falls back to '#<number>' when the driver entry is missing", () => {
+    const changes = { "99": 2 };
+    const result = computeMostPositionsGained(changes, drivers);
+    expect(result?.tla).toBe("#99");
   });
 });

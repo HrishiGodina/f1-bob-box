@@ -43,6 +43,8 @@ describe("computeBattles", () => {
       behindNumber: "44",
       aheadTla: "VER",
       behindTla: "HAM",
+      aheadPosition: 1,
+      behindPosition: 2,
       gapSeconds: 0.8,
       tier: "live",
     });
@@ -106,7 +108,7 @@ describe("computeBattles", () => {
     expect(battles[0].aheadTla).toBe("VER");
   });
 
-  it("returns multiple simultaneous battles across both tiers, sorted ascending by gapSeconds", () => {
+  it("returns multiple simultaneous battles across both tiers, sorted by track position", () => {
     const timing = {
       "1": mkLine({ position: "1", interval: null }),
       "44": mkLine({ position: "2", interval: "+3.2" }),
@@ -125,8 +127,8 @@ describe("computeBattles", () => {
     const battles = computeBattles(timing, drivers);
 
     expect(battles).toHaveLength(3);
-    expect(battles.map((b) => b.gapSeconds)).toEqual([0.8, 1.5, 3.2]);
-    expect(battles.map((b) => b.tier)).toEqual(["live", "live", "approaching"]);
-    expect(battles.map((b) => b.key)).toEqual(["16-44", "4-63", "44-1"]);
+    expect(battles.map((b) => b.key)).toEqual(["44-1", "16-44", "4-63"]);
+    expect(battles.map((b) => b.gapSeconds)).toEqual([3.2, 0.8, 1.5]);
+    expect(battles.map((b) => b.tier)).toEqual(["approaching", "live", "live"]);
   });
 });

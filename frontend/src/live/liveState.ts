@@ -1,4 +1,4 @@
-import type { DriverInfo, LivePatch, LiveSnapshot, TimingLine } from "./types";
+import type { DriverInfo, LivePatch, LiveSnapshot, SectorTime, TelemetryChannels, TimingLine } from "./types";
 
 // Mirrors LiveSessionState.snapshot()'s empty-state shape exactly (backend/
 // livetiming/state.py) — verified against the actual empty-snapshot test in
@@ -14,6 +14,7 @@ export const INITIAL_LIVE_STATE: LiveSnapshot = {
   track_status: {},
   race_control: [],
   weather: {},
+  starting_grid: {},
 };
 
 // Deliberately a shallow merge, not a recursive one: the backend already
@@ -44,6 +45,7 @@ export interface DriverBest {
   tla: string;
   time: string;
   seconds: number;
+  teamColour: string | null;
 }
 
 export interface SessionBests {
@@ -94,6 +96,7 @@ function pickBest(
         tla: drivers[racingNumber]?.tla ?? `#${racingNumber}`,
         time: (raw as string).trim(),
         seconds,
+        teamColour: drivers[racingNumber]?.team_colour ?? null,
       };
     }
   }
@@ -124,4 +127,114 @@ export function computeSessionBests(
       (line) => !line.retired
     ),
   };
+}
+
+export interface TopSpeed {
+  racingNumber: string;
+  tla: string;
+  speed: number;
+  teamColour: string | null;
+}
+
+// Live top speed across the field right now (telemetry.speed is
+// instantaneous, not a lap-scoped record) — this is the "Fastest Pace"
+// card's headline metric instead of a lap-time.
+export function computeTopSpeed(
+  telemetry: Record<string, TelemetryChannels>,
+  drivers: Record<string, DriverInfo>
+): TopSpeed | null {
+  let best: TopSpeed | null = null;
+  for (const [racingNumber, channels] of Object.entries(telemetry)) {
+    const speed = channels.speed;
+    if (speed === null || speed === undefined) continue;
+    if (best === null || speed > best.speed) {
+      best = {
+        racingNumber,
+        tla: drivers[racingNumber]?.tla ?? `#${racingNumber}`,
+        speed,
+        teamColour: drivers[racingNumber]?.team_colour ?? null,
+      };
+    }
+  }
+  return best;
+}
+
+export interface PositionGain {
+  racingNumber: string;
+  tla: string;
+  gain: number;
+  teamColour: string | null;
+}
+
+// Driver with the single largest positive change from `positionChanges`
+// (LiveDashboard's qualifying-grid-vs-current-position diff) — a car that's
+// lost places never wins this, so a field with no gainers yet returns null
+// rather than surfacing the "least bad" loser.
+export function computeMostPositionsGained(
+  positionChanges: Record<string, number>,
+  drivers: Record<string, DriverInfo>
+): PositionGain | null {
+  let best: PositionGain | null = null;
+  for (const [racingNumber, gain] of Object.entries(positionChanges)) {
+    if (gain <= 0) continue;
+    if (best === null || gain > best.gain) {
+      best = {
+        racingNumber,
+        tla: drivers[racingNumber]?.tla ?? `#${racingNumber}`,
+        gain,
+        teamColour: drivers[racingNumber]?.team_colour ?? null,
+      };
+    }
+  }
+  return best;
+}
+
+export interface SectorBest {
+  tla: string;
+  time: string;
+  teamColour: string | null;
+}
+
+// Broadcast convention: each sector index carries its own OverallFastest
+// flag (see TimingTower.tsx's sectorClass) — that flag is authoritative
+// when present, since it's the backend's own purple-sector designation.
+// Only when no driver's sector at that index is flagged do we fall back to
+// comparing parsed times ourselves, the same "derive, don't guess" pattern
+// as pickBest above.
+const SECTOR_COUNT = 3;
+
+export function computeBestSectors(
+  timing: Record<string, TimingLine>,
+  drivers: Record<string, DriverInfo>
+): (SectorBest | null)[] {
+  const results: (SectorBest | null)[] = [];
+
+  for (let i = 0; i < SECTOR_COUNT; i++) {
+    let flagged: SectorBest | null = null;
+    let fallback: SectorBest | null = null;
+    let fallbackSeconds = Infinity;
+
+    for (const [racingNumber, line] of Object.entries(timing)) {
+      const sector: SectorTime | undefined = line.sectors[i];
+      if (!sector?.Value) continue;
+      const seconds = parseLapTime(sector.Value);
+      if (seconds === null) continue;
+      const entry: SectorBest = {
+        tla: drivers[racingNumber]?.tla ?? `#${racingNumber}`,
+        time: sector.Value.trim(),
+        teamColour: drivers[racingNumber]?.team_colour ?? null,
+      };
+      if (sector.OverallFastest) {
+        flagged = entry;
+      }
+      if (seconds < fallbackSeconds) {
+        fallbackSeconds = seconds;
+        fallback = entry;
+      }
+    }
+
+    results.push(flagged ?? fallback);
+  }
+
+  return results;
 }

@@ -1,16 +1,18 @@
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { useLiveSnapshot } from "./useLiveSnapshot";
-import { computeSessionBests } from "./liveState";
+import { computeSessionBests, computeBestSectors, computeTopSpeed, computeMostPositionsGained } from "./liveState";
 import { shouldShowNoSessionPanel } from "./liveView";
 import { computeBattles } from "./battles";
-import { SessionBests } from "./SessionBests";
+import { useQualifyingGrid } from "./useQualifyingGrid";
+import { startF1AuthRefresh, useF1AuthStatus } from "./useF1AuthStatus";
+import { SessionBests, trackFlag } from "./SessionBests";
+import { SectorBests } from "./SectorBests";
 import { TimingTower } from "./TimingTower";
 import { TrackMap } from "./TrackMap";
 import { RaceControlTicker } from "./RaceControlTicker";
 import { BattleWatchList } from "./BattleWatchList";
-import { WingBotAlerts } from "./WingBotAlerts";
-import { DriverTelemetryPanel } from "./DriverTelemetryPanel";
+import { CompactTelemetry } from "./CompactTelemetry";
 
 export interface LiveDashboardProps {
   demoActive: boolean;
@@ -31,18 +33,50 @@ export function LiveDashboard({ demoActive, onToggleDemo }: LiveDashboardProps) 
     [snapshot.timing, snapshot.drivers]
   );
 
+  const sectorBests = useMemo(
+    () => computeBestSectors(snapshot.timing, snapshot.drivers),
+    [snapshot.timing, snapshot.drivers]
+  );
+
+  const topSpeed = useMemo(
+    () => computeTopSpeed(snapshot.telemetry, snapshot.drivers),
+    [snapshot.telemetry, snapshot.drivers]
+  );
+
   const battles = useMemo(
     () => computeBattles(snapshot.timing, snapshot.drivers),
     [snapshot.timing, snapshot.drivers]
   );
 
-  // The current leader is whoever holds P1 in the timing map — derived, not
-  // tracked separately.
-  const leaderTla = useMemo(() => {
-    const leader = Object.entries(snapshot.timing).find(([, line]) => line.position === "1");
-    if (!leader) return null;
-    return snapshot.drivers[leader[0]]?.tla ?? `#${leader[0]}`;
-  }, [snapshot.timing, snapshot.drivers]);
+  const flag = trackFlag(snapshot.track_status);
+
+  // Position-change baseline: the actual starting grid (qualifying
+  // classification) when resolvable, falling back to the backend's
+  // server-captured first-observed positions. Demo mode skips the fetch so
+  // the demo timeline's own starting_grid stays the baseline.
+  const qualifyingGrid = useQualifyingGrid(sessionName, snapshot.drivers, !demoActive);
+
+  const f1Auth = useF1AuthStatus(!demoActive);
+
+  const renewF1Token = async () => {
+    const url = await startF1AuthRefresh();
+    if (url) window.open(url, "_blank");
+  };
+
+  const positionChanges = useMemo(() => {
+    const changes: Record<string, number> = {};
+    for (const [racingNumber, line] of Object.entries(snapshot.timing)) {
+      const start = qualifyingGrid[racingNumber] ?? snapshot.starting_grid[racingNumber];
+      if (!start || !line.position) continue;
+      changes[racingNumber] = Number(start) - Number(line.position);
+    }
+    return changes;
+  }, [snapshot.timing, snapshot.starting_grid, qualifyingGrid]);
+
+  const positionGain = useMemo(
+    () => computeMostPositionsGained(positionChanges, snapshot.drivers),
+    [positionChanges, snapshot.drivers]
+  );
 
   return (
     <div className="space-y-6" id="live-dashboard">
@@ -52,10 +86,14 @@ export function LiveDashboard({ demoActive, onToggleDemo }: LiveDashboardProps) 
           animate={{ opacity: 1, x: 0 }}
           className="flex items-center gap-4"
         >
-          <div className="text-mkbhd-red font-black uppercase tracking-[0.5em] text-xs flex items-center gap-2 flex-shrink-0">
-            <div className="w-2 h-2 rounded-full bg-mkbhd-red animate-pulse" /> Live Satellite Feed
-          </div>
           <h1 className="text-2xl md:text-4xl tracking-tight leading-none">{sessionName}</h1>
+          <div
+            className="px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-[0.25em] flex items-center gap-2 flex-shrink-0"
+            style={{ backgroundColor: `${flag.color}1a`, border: `1px solid ${flag.color}66`, color: flag.color }}
+          >
+            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: flag.color }} />
+            {flag.label}
+          </div>
         </motion.div>
         <div className="flex items-center gap-3">
           {demoActive && (
@@ -95,9 +133,28 @@ export function LiveDashboard({ demoActive, onToggleDemo }: LiveDashboardProps) 
         </div>
       ) : (
         <>
+          {f1Auth.needsRefresh && (
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-6 py-3 rounded-mkbhd border border-mkbhd-red/40 bg-mkbhd-red/10">
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-mkbhd-red">
+                {f1Auth.validUntil
+                  ? "F1TV token expiring soon — driver tracking & telemetry will stop without it"
+                  : "F1TV token missing — driver tracking & telemetry are disabled"}
+              </span>
+              <button
+                type="button"
+                onClick={renewF1Token}
+                className="px-4 py-2 rounded-full bg-mkbhd-red text-white text-[10px] font-black uppercase tracking-widest hover:opacity-90 transition-opacity cursor-pointer flex-shrink-0"
+              >
+                Renew token
+              </button>
+            </div>
+          )}
           <RaceControlTicker messages={snapshot.race_control} />
 
-          <SessionBests bests={bests} leaderTla={leaderTla} trackStatus={snapshot.track_status} />
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+            <SessionBests bests={bests} topSpeed={topSpeed} positionGain={positionGain} />
+            <SectorBests sectors={sectorBests} />
+          </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             <div className="lg:col-span-8">
@@ -107,7 +164,8 @@ export function LiveDashboard({ demoActive, onToggleDemo }: LiveDashboardProps) 
                 selectedDriver={selectedDriver}
                 onSelectDriver={setSelectedDriver}
                 fastestLapDriver={bests.fastestLap?.racingNumber ?? null}
-                fastestPaceDriver={bests.fastestPace?.racingNumber ?? null}
+                fastestPaceDriver={topSpeed?.racingNumber ?? null}
+                positionChanges={positionChanges}
               />
             </div>
 
@@ -117,18 +175,14 @@ export function LiveDashboard({ demoActive, onToggleDemo }: LiveDashboardProps) 
                 positions={snapshot.positions}
                 selectedDriver={selectedDriver}
                 sessionName={sessionName}
+                weather={snapshot.weather}
               />
-              <BattleWatchList battles={battles} telemetry={snapshot.telemetry} />
+              <CompactTelemetry drivers={snapshot.drivers} telemetry={snapshot.telemetry} selectedDriver={selectedDriver} />
+              <BattleWatchList battles={battles} telemetry={snapshot.telemetry} timing={snapshot.timing} />
             </div>
-          </div>
-
-          <div id="telemetry">
-            <DriverTelemetryPanel drivers={snapshot.drivers} telemetry={snapshot.telemetry} selectedDriver={selectedDriver} />
           </div>
         </>
       )}
-
-      <WingBotAlerts battles={battles} />
     </div>
   );
 }

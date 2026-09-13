@@ -156,6 +156,15 @@ def test_positions_projection_reads_the_latest_frame():
     assert state._derive_positions() == {"1": {"x": 10, "y": 20, "z": 0, "status": "OnTrack"}}
 
 
+def test_positions_projection_handles_plain_array_deltas():
+    state = LiveSessionState()
+    # Apply initial dict snapshot
+    state.apply("Position.z", {"Position": [{"Entries": {"1": {"X": 10, "Y": 20}}}]})
+    # Apply plain array delta
+    state.apply("Position.z", [{"Entries": {"1": {"X": 30, "Y": 40}}}])
+    assert state._derive_positions() == {"1": {"x": 30, "y": 40, "z": None, "status": None}}
+
+
 def test_telemetry_projection_decodes_car_data_channels():
     state = LiveSessionState()
     state.apply("CarData.z", {"Entries": [{"Utc": "t", "Cars": {
@@ -163,6 +172,17 @@ def test_telemetry_projection_decodes_car_data_channels():
     }}]})
     assert state._derive_telemetry() == {
         "1": {"rpm": 11000, "speed": 300, "gear": 8, "throttle": 100, "brake": 0, "drs": 1},
+    }
+
+
+def test_telemetry_projection_handles_plain_array_deltas():
+    state = LiveSessionState()
+    # Apply plain array delta
+    state.apply("CarData.z", [{"Utc": "t", "Cars": {
+        "1": {"Channels": {"0": 11500, "2": 310, "3": 8, "4": 100, "5": 0, "45": 1}},
+    }}])
+    assert state._derive_telemetry() == {
+        "1": {"rpm": 11500, "speed": 310, "gear": 8, "throttle": 100, "brake": 0, "drs": 1},
     }
 
 

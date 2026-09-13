@@ -1,11 +1,11 @@
-import type { SessionBests as SessionBestsData } from "./liveState";
+import type { PositionGain, SessionBests as SessionBestsData, TopSpeed } from "./liveState";
 import type { TrackStatusInfo } from "./types";
 
 // Map F1's TrackStatus into a broadcast flag label + colour. `Status` is a
 // numeric code (as a string); we key off it, falling back to the raw
 // `Message` text when a code we don't recognise arrives so the panel never
 // goes blank on an unmapped state.
-function trackFlag(track: TrackStatusInfo): { label: string; color: string } {
+export function trackFlag(track: TrackStatusInfo): { label: string; color: string } {
   const status = track.Status ? String(track.Status) : "";
   const map: Record<string, { label: string; color: string }> = {
     "1": { label: "Track Clear", color: "#43b02a" },
@@ -33,14 +33,14 @@ interface StatProps {
 // thing at a glance.
 function Stat({ label, value, sub, accent }: StatProps) {
   return (
-    <div className="mkbhd-card p-4 flex items-stretch gap-3 bg-white/[0.01]">
+    <div className="mkbhd-card p-3 flex items-stretch gap-2 bg-white/[0.01]">
       <div className="w-1 rounded-full flex-shrink-0" style={{ backgroundColor: accent }} />
       <div className="min-w-0">
-        <div className="text-[10px] font-black uppercase tracking-[0.3em] text-mkbhd-gray">{label}</div>
-        <div className="text-2xl font-black italic uppercase tracking-tighter leading-tight mt-1 truncate" style={{ color: accent }}>
+        <div className="text-[9px] font-black uppercase tracking-[0.25em] text-mkbhd-gray">{label}</div>
+        <div className="text-lg font-black italic uppercase tracking-tighter leading-tight mt-0.5 truncate" style={{ color: accent }}>
           {value}
         </div>
-        {sub && <div className="text-[10px] font-bold uppercase tracking-widest text-mkbhd-gray mt-0.5 truncate">{sub}</div>}
+        {sub && <div className="text-[9px] font-bold uppercase tracking-widest text-mkbhd-gray mt-0.5 truncate">{sub}</div>}
       </div>
     </div>
   );
@@ -48,28 +48,35 @@ function Stat({ label, value, sub, accent }: StatProps) {
 
 export interface SessionBestsProps {
   bests: SessionBestsData;
-  leaderTla: string | null;
-  trackStatus: TrackStatusInfo;
+  topSpeed: TopSpeed | null;
+  positionGain: PositionGain | null;
 }
 
-export function SessionBests({ bests, leaderTla, trackStatus }: SessionBestsProps) {
-  const flag = trackFlag(trackStatus);
+export function SessionBests({ bests, topSpeed, positionGain }: SessionBestsProps) {
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-      <Stat label="Leader" value={leaderTla ?? "—"} sub="Position 1" accent="#ffffff" />
+    <>
       <Stat
         label="Fastest Lap"
         value={bests.fastestLap?.time ?? "—"}
         sub={bests.fastestLap ? bests.fastestLap.tla : "Awaiting first lap"}
-        accent="#b45cff"
+        accent={bests.fastestLap?.teamColour ?? "#b45cff"}
       />
-      <Stat
-        label="Fastest Pace"
-        value={bests.fastestPace?.time ?? "—"}
-        sub={bests.fastestPace ? `${bests.fastestPace.tla} · last lap` : "Awaiting first lap"}
-        accent="#2dd4bf"
-      />
-      <Stat label="Track Status" value={flag.label} accent={flag.color} />
-    </div>
+      {topSpeed && (
+        <Stat
+          label="Fastest Pace"
+          value={`${topSpeed.speed} KM/H`}
+          sub={topSpeed.tla}
+          accent={topSpeed.teamColour ?? "#2dd4bf"}
+        />
+      )}
+      {positionGain && (
+        <Stat
+          label="Most Gained"
+          value={`+${positionGain.gain}`}
+          sub={positionGain.tla}
+          accent={positionGain.teamColour ?? "#43b02a"}
+        />
+      )}
+    </>
   );
 }

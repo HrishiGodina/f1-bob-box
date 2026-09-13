@@ -16,6 +16,7 @@ import httpx
 from websockets.asyncio.client import connect as ws_connect
 
 from .decode import RECORD_SEPARATOR, extract_snapshot, extract_topic_message, parse_frame
+from .recorder import record_snapshot, record_topic
 from .state import LiveSessionState
 
 logger = logging.getLogger(__name__)
@@ -45,15 +46,19 @@ class LiveTimingClient:
         negotiate_url: str = NEGOTIATE_URL,
         ws_url: str = WS_URL,
         ws_connect_fn: Callable[..., Any] = ws_connect,
+        record_path: Optional[str] = None,
+        token_provider: Optional[Callable[[], Optional[str]]] = None,
     ) -> None:
         self._state = state
         self._on_patch = on_patch
         self._negotiate_url = negotiate_url
         self._ws_url = ws_url
         self._ws_connect_fn = ws_connect_fn
+        self._record_path = record_path
+        self._token_provider = token_provider
         self._stopped = False
 
-    async def _negotiate(self) -> Tuple[str, str]:
+    async def _negotiate(self, auth_headers: Optional[Dict[str, str]] = None) -> Tuple[str, str]:
         """OPTIONS then POST, sharing one httpx.AsyncClient so the cookie
         the OPTIONS response sets is attached to the POST automatically.
 
@@ -63,7 +68,7 @@ class LiveTimingClient:
         routes it to a different backend node than the one that minted
         the token, which rejects it with HTTP 404. Returns the token and
         a `Cookie` header value (empty string if no cookie was set)."""
-        async with httpx.AsyncClient(headers=CLIENT_HEADERS) as http:
+        async with httpx.AsyncClient(headers={**CLIENT_HEADERS, **(auth_headers or {})}) as http:
             await http.options(self._negotiate_url)
             response = await http.post(self._negotiate_url, params={"negotiateVersion": "1"})
             response.raise_for_status()
@@ -86,7 +91,30 @@ class LiveTimingClient:
             )
             return {}
 
+    def _record_raw(self, record: dict) -> None:
+        """Record the raw SignalR record before any decoding, so replay can
+        re-run the real inflate pipeline. Failure to record (disk full, bad
+        path) must never drop the live connection."""
+        try:
+            if record.get("type") == 3:
+                result = record.get("result")
+                if isinstance(result, dict):
+                    record_snapshot(self._record_path, result)
+            elif record.get("type") == 1:
+                arguments = record.get("arguments") or []
+                if arguments:
+                    record_topic(
+                        self._record_path,
+                        arguments[0],
+                        arguments[1] if len(arguments) > 1 else None,
+                        arguments[2] if len(arguments) > 2 else None,
+                    )
+        except OSError as exc:
+            logger.warning("failed to record topic update: %s", exc)
+
     async def _handle_record(self, record: dict) -> None:
+        if self._record_path is not None:
+            self._record_raw(record)
         snapshot = extract_snapshot(record)
         if snapshot is not None:
             combined: Dict[str, Any] = {}
@@ -111,9 +139,25 @@ class LiveTimingClient:
             await ws.send(json.dumps({"type": 6}) + RECORD_SEPARATOR)
 
     async def _connect_once(self) -> None:
-        connection_token, cookie_header = await self._negotiate()
+        # Since 2026 the feed serves unauthenticated connections only the
+        # basic topic set — Position.z/CarData.z (driver tracking, telemetry)
+        # require an F1TV subscription token (see f1auth.py), supplied via
+        # the token_provider wiring in main.py.
+        token = self._token_provider() if self._token_provider else None
+        if token:
+            auth_headers = {"Authorization": f"Bearer {token}"}
+        elif self._token_provider:
+            auth_headers = {}
+            logger.warning(
+                "no valid F1TV subscription token — driver tracking and telemetry "
+                "topics are unavailable; run `python -m livetiming.f1auth` to authenticate"
+            )
+        else:
+            auth_headers = {}
+        connection_token, cookie_header = await self._negotiate(auth_headers)
         url = "{}?id={}".format(self._ws_url, connection_token)
         headers = dict(CLIENT_HEADERS)
+        headers.update(auth_headers)
         if cookie_header:
             headers["Cookie"] = cookie_header
         # No read timeout anywhere in this method or in ws_connect's own

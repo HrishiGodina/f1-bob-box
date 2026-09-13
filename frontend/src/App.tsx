@@ -745,7 +745,12 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      <main className="p-8 md:p-16 max-w-[1920px] mx-auto overflow-hidden">
+      <main
+        className={`px-8 md:px-16 pb-8 md:pb-16 max-w-[1920px] mx-auto overflow-hidden ${
+          effectiveLive ? "pt-4 md:pt-6" : "pt-8 md:pt-16"
+        }`}
+      >
+
         <AnimatePresence mode="wait">
           {effectiveLive ? (
             <motion.div key="live" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>

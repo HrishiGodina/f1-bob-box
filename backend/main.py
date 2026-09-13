@@ -1,9 +1,10 @@
 import asyncio
 import os
 import sys
+import time
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
-from typing import Optional
+from typing import Any, Dict, Optional
 
 # main.py is run both as `uvicorn main:app` (Railway, cwd=backend/) and
 # imported by test files that already do this same insert — belt-and-
@@ -12,10 +13,18 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from websockets.exceptions import ConnectionClosed
 import httpx
 from dotenv import load_dotenv
 
 from livetiming.client import LiveTimingClient
+from livetiming.f1auth import (
+    REFRESH_WINDOW_SECONDS,
+    TOKEN_FILE,
+    _token_expiry,
+    get_subscription_token,
+    refresh_coordinator,
+)
 from livetiming.hub import Broadcaster
 from livetiming.recorder import replay_fixture
 from livetiming.state import LiveSessionState
@@ -51,19 +60,61 @@ async def lifespan(app: FastAPI):
 
     client: Optional[LiveTimingClient] = None
     background_task: Optional["asyncio.Task[None]"] = None
+    token_watcher: Optional["asyncio.Task[None]"] = None
+    runtime: Dict[str, Any] = {}
+
+    def start_client() -> None:
+        record_dir = os.path.join(os.path.dirname(__file__), "recordings")
+        os.makedirs(record_dir, exist_ok=True)
+        client = LiveTimingClient(
+            live_state, broadcaster.broadcast, record_path=runtime.get("record_path"),
+            token_provider=get_subscription_token,
+        )
+        runtime["client"] = client
+        runtime["task"] = asyncio.ensure_future(client.run())
 
     if os.environ.get("LIVETIMING_AUTOSTART", "1") != "0":
         replay_path = os.environ.get("LIVETIMING_REPLAY")
         if replay_path:
             background_task = asyncio.ensure_future(_run_replay_loop(replay_path, live_state, broadcaster))
         else:
-            client = LiveTimingClient(live_state, broadcaster.broadcast)
-            background_task = asyncio.ensure_future(client.run())
+            record_dir = os.path.join(os.path.dirname(__file__), "recordings")
+            os.makedirs(record_dir, exist_ok=True)
+            runtime["record_path"] = os.path.join(
+                record_dir, datetime.now(timezone.utc).strftime("%Y-%m-%dT%H%M%SZ") + ".jsonl"
+            )
+            start_client()
+
+            async def watch_token_file() -> None:
+                def read_token_file() -> str:
+                    try:
+                        return TOKEN_FILE.read_text().strip()
+                    except OSError:
+                        return ""
+
+                last = read_token_file()
+                while True:
+                    await asyncio.sleep(30)
+                    content = read_token_file()
+                    if content and content != last:
+                        last = content
+                        task = runtime.get("task")
+                        if task is not None:
+                            task.cancel()
+                            try:
+                                await task
+                            except asyncio.CancelledError:
+                                pass
+                        start_client()
+
+            token_watcher = asyncio.ensure_future(watch_token_file())
 
     yield
 
     if client is not None:
         await client.stop()  # cooperative: takes effect at run()'s next loop boundary
+    if token_watcher is not None:
+        token_watcher.cancel()
     if background_task is not None:
         background_task.cancel()  # forceful: unwinds even a suspended no-timeout WS read
         try:
@@ -101,10 +152,29 @@ async def ws_live(websocket: WebSocket) -> None:
             # The frontend never sends anything meaningful up this socket;
             # this purely blocks until the browser disconnects.
             await websocket.receive_text()
-    except WebSocketDisconnect:
+    except (WebSocketDisconnect, ConnectionClosed):
+        # A client can vanish (tab close, refresh, network drop) without a
+        # clean close handshake, which the websockets library raises as
+        # ConnectionClosed rather than Starlette's own WebSocketDisconnect.
         pass
     finally:
         await broadcaster.unregister(websocket)
+
+
+@app.get("/api/f1auth/status")
+async def f1auth_status() -> Dict[str, Any]:
+    exp: Optional[float] = None
+    if TOKEN_FILE.exists():
+        exp = _token_expiry(TOKEN_FILE.read_text().strip())
+    return {
+        "valid_until": exp,
+        "needs_refresh": exp is None or exp <= time.time() + REFRESH_WINDOW_SECONDS,
+    }
+
+
+@app.post("/api/f1auth/refresh/start")
+async def f1auth_refresh_start() -> Dict[str, str]:
+    return {"url": refresh_coordinator.start()}
 
 
 OPENF1_BASE_URL = "https://api.openf1.org/v1"

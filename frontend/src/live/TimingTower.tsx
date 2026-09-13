@@ -1,4 +1,26 @@
+import { ArrowDown, ArrowUp } from "lucide-react";
+import { motion } from "framer-motion";
 import type { DriverInfo, SectorTime, TimingLine } from "./types";
+
+// Places gained (green, up) or lost (red, down) since the driver's starting
+// grid position — see LiveDashboard's positionChanges (backed by the
+// server-captured snapshot.starting_grid). Renders nothing for 0/unknown so
+// an unchanged driver's row stays visually quiet.
+function PositionChange({ change }: { change: number | undefined }) {
+  if (!change) return null;
+  const gained = change > 0;
+  const Icon = gained ? ArrowUp : ArrowDown;
+  return (
+    <span
+      className={`flex items-center gap-0.5 text-[10px] font-black tabular-nums flex-shrink-0 ${
+        gained ? "text-emerald-400" : "text-mkbhd-red"
+      }`}
+    >
+      <Icon size={10} strokeWidth={3} />
+      {Math.abs(change)}
+    </span>
+  );
+}
 
 // Official F1 compound colours, as the broadcast timing tower draws them:
 // red soft, yellow medium, white hard, green intermediate, blue wet.
@@ -70,7 +92,7 @@ function sectorClass(sector: SectorTime | undefined): string {
 // Shared column template so the header labels and every data row align to
 // the same grid. Wrapped in a horizontal scroller for narrow viewports.
 const ROW_GRID =
-  "grid grid-cols-[1.75rem_minmax(5rem,1.2fr)_5.5rem_2.75rem_5rem_5.25rem_8rem_5.25rem] items-center gap-2";
+  "grid grid-cols-[1.75rem_minmax(5rem,1.2fr)_5.5rem_2.5rem_2.75rem_5rem_5.25rem_8rem_5.25rem] items-center gap-2";
 
 export interface TimingTowerProps {
   drivers: Record<string, DriverInfo>;
@@ -81,6 +103,9 @@ export interface TimingTowerProps {
   // those cells can be tinted to match the Session Bests bar above.
   fastestLapDriver: string | null;
   fastestPaceDriver: string | null;
+  // Places gained (positive) or lost (negative) since first observed this
+  // session, keyed by racing number — see LiveDashboard's positionChanges.
+  positionChanges: Record<string, number>;
 }
 
 export function TimingTower({
@@ -90,6 +115,7 @@ export function TimingTower({
   onSelectDriver,
   fastestLapDriver,
   fastestPaceDriver,
+  positionChanges,
 }: TimingTowerProps) {
   const rows = Object.entries(timing).sort((a, b) => comparePosition(a, b, drivers));
 
@@ -106,6 +132,7 @@ export function TimingTower({
             <span className="text-right">Pos</span>
             <span>Driver</span>
             <span>Tyre</span>
+            <span />
             <span className="text-center">Stp</span>
             <span>Gap</span>
             <span>Last</span>
@@ -113,7 +140,7 @@ export function TimingTower({
             <span>Best</span>
           </div>
 
-          <div className="max-h-[720px] overflow-y-auto custom-scrollbar p-2">
+          <div className="p-2">
             {rows.length === 0 && (
               <div className="p-8 text-center text-mkbhd-gray text-xs uppercase tracking-widest">
                 Waiting for timing data...
@@ -126,8 +153,10 @@ export function TimingTower({
               const isFastestLap = fastestLapDriver === racingNumber;
               const isFastestPace = fastestPaceDriver === racingNumber;
               return (
-                <div
+                <motion.div
                   key={racingNumber}
+                  layout
+                  transition={{ type: "spring", stiffness: 350, damping: 32 }}
                   onClick={() => onSelectDriver(racingNumber)}
                   className={`${ROW_GRID} px-4 py-3 rounded-2xl cursor-pointer transition-colors ${
                     isSelected ? "bg-mkbhd-red/15" : "hover:bg-white/[0.03]"
@@ -158,6 +187,10 @@ export function TimingTower({
                   </div>
 
                   <TyreBadge compound={line.tyre_compound} age={line.stint_laps} />
+
+                  <div className="flex items-center justify-center">
+                    <PositionChange change={positionChanges[racingNumber]} />
+                  </div>
 
                   <span className="text-sm font-black text-white/80 text-center tabular-nums">{line.pit_count ?? 0}</span>
 
@@ -196,7 +229,7 @@ export function TimingTower({
                   >
                     {line.best_lap?.Value || line.personal_best_lap?.Value || "—"}
                   </span>
-                </div>
+                </motion.div>
               );
             })}
           </div>

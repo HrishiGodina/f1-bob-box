@@ -8,6 +8,8 @@ export interface Battle {
   behindNumber: string;
   aheadTla: string;
   behindTla: string;
+  aheadPosition: number;
+  behindPosition: number;
   gapSeconds: number;
   tier: BattleTier;
 }
@@ -26,8 +28,12 @@ function parseIntervalSeconds(interval: string | null): number | null {
 /**
  * All battles within APPROACH_MAX_SECONDS of the car directly ahead,
  * tiered into "approaching" (WingBot alert) vs "live" (Battle Watch list).
- * `interval` is the gap-to-car-ahead field already computed upstream —
- * this only filters, tiers, and labels it. Sorted closest-gap first.
+ * Pairs are formed strictly by track position (each car vs. the one
+ * directly ahead of it), not by scanning for the closest gap anywhere in
+ * the field — `interval` (gap-to-car-ahead) only decides whether that
+ * position-adjacent pair counts as a battle and which tier it's in.
+ * Sorted by track position (leader's pair first), so the list reads in
+ * the same order as the timing tower.
  */
 export function computeBattles(
   timing: Record<string, TimingLine>,
@@ -43,7 +49,7 @@ export function computeBattles(
     const gapSeconds = parseIntervalSeconds(behindLine.interval);
     if (gapSeconds === null || gapSeconds > APPROACH_MAX_SECONDS) continue;
 
-    const [aheadNumber] = byPosition[i - 1];
+    const [aheadNumber, aheadLine] = byPosition[i - 1];
     const aheadTla = drivers[aheadNumber]?.tla ?? `#${aheadNumber}`;
     const behindTla = drivers[behindNumber]?.tla ?? `#${behindNumber}`;
     const tier: BattleTier = gapSeconds <= LIVE_MAX_SECONDS ? "live" : "approaching";
@@ -53,10 +59,12 @@ export function computeBattles(
       behindNumber,
       aheadTla,
       behindTla,
+      aheadPosition: Number(aheadLine.position),
+      behindPosition: Number(behindLine.position),
       gapSeconds,
       tier,
     });
   }
 
-  return battles.sort((a, b) => a.gapSeconds - b.gapSeconds);
+  return battles.sort((a, b) => a.aheadPosition - b.aheadPosition);
 }

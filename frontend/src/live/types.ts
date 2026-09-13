@@ -101,6 +101,11 @@ export interface LiveSnapshot {
   track_status: TrackStatusInfo;
   race_control: RaceControlMessage[];
   weather: WeatherInfo;
+  // Each driver's earliest-observed TimingData Position this session,
+  // captured once server-side (state.py's _capture_starting_grid) so every
+  // client gets the same baseline regardless of when it connects — this
+  // already reflects any grid penalty, unlike raw qualifying classification.
+  starting_grid: Record<string, string>;
 }
 
 // What actually arrives over /ws/live: the backend always sends the
