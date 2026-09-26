@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { DriverInfo } from "./types";
 import { resolveCircuitKey } from "../../circuits/track";
 
-const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8000/api";
+import { API_BASE } from "../../shared/api/client";
 
 interface QualifyingResult {
   position: string | null;

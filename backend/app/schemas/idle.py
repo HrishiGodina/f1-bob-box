@@ -25,13 +25,13 @@ class ConstructorStanding(BaseModel):
 class NewsImage(BaseModel):
     model_config = ConfigDict(extra="allow")
 
-    url: str
+    url: str | None = None
 
 
 class NewsWebLink(BaseModel):
     model_config = ConfigDict(extra="allow")
 
-    href: str
+    href: str | None = None
 
 
 class NewsLinks(BaseModel):
@@ -43,10 +43,10 @@ class NewsLinks(BaseModel):
 class NewsArticle(BaseModel):
     model_config = ConfigDict(extra="allow")
 
-    headline: str
-    description: str
+    headline: str | None = None
+    description: str | None = None
     images: list[NewsImage] = []
-    links: NewsLinks
+    links: NewsLinks | None = None
 
 
 class ScheduledRace(BaseModel):

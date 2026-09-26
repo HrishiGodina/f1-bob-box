@@ -13,7 +13,7 @@ start() {
     # Start Backend
     if command -v uv >/dev/null 2>&1; then
         echo "Starting Backend (FastAPI)..."
-        (cd "$BACKEND_DIR" && uv run uvicorn app.main:app --host 127.0.0.1 --port 8000) > backend.log 2>&1 &
+        (cd "$BACKEND_DIR" && exec uv run uvicorn app.main:app --host 127.0.0.1 --port 8000) > backend.log 2>&1 &
         echo $! > $BACKEND_PID_FILE
         echo "Backend started with PID $(cat $BACKEND_PID_FILE)"
     else

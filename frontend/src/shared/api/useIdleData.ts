@@ -40,5 +40,6 @@ export function useIdleData() {
     staleTime: Infinity,
     refetchOnWindowFocus: false,
     retry: false,
+    refetchInterval: (query) => (query.state.data === undefined ? 30000 : false),
   });
 }

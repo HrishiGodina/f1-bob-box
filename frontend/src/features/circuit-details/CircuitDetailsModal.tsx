@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Zap } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { StudioModal } from '../../shared/ui/StudioModal';
@@ -65,6 +65,12 @@ export const CircuitDetailsModal = ({ isOpen, onClose, circuit, onDriverClick }:
     isOpen && !!circuitId && selectedYear !== null && mainTab === 'weekend',
   );
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (isOpen && circuitId) {
+      queryClient.invalidateQueries({ queryKey: ['raceWeekend', circuitId] });
+    }
+  }, [isOpen, circuitId, queryClient]);
 
   const data = detailsQuery.data;
   const resetKey = `${isOpen}-${circuitId}`;

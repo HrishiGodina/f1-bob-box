@@ -289,10 +289,6 @@ export function computeBestSectors(
   return results;
 }
 
-// Map F1's TrackStatus into a broadcast flag label + colour. `Status` is a
-// numeric code (as a string); we key off it, falling back to the raw
-// `Message` text when a code we don't recognise arrives so the panel never
-// goes blank on an unmapped state.
 export function trackFlag(track: TrackStatusInfo): { label: string; color: string } {
   const status = track.Status ? String(track.Status) : "";
   const map: Record<string, { label: string; color: string }> = {

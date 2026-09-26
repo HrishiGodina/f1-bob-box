@@ -148,7 +148,6 @@ const CIRCUIT_KEYWORDS = Object.keys(CIRCUIT_GEOJSON)
  */
 export function resolveCircuitKey(sessionName: string | null | undefined): string | null {
   if (!sessionName) return null;
-  // Fold accents so accented meeting names ("São Paulo Grand Prix") match ASCII keywords
   const normalized = sessionName.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
   for (const { slug, pattern } of CIRCUIT_KEYWORDS) {
     if (pattern.test(normalized)) return slug;
