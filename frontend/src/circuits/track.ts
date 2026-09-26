@@ -129,6 +129,7 @@ const GP_NAME_ALIASES: Record<string, string[]> = {
   losail: ["qatar"],
   yas_marina: ["abu dhabi"],
   madring: ["spanish", "spain"],
+  baku: ["azerbaijan"],
 };
 
 // Lowercased, underscore-free circuit slugs from CIRCUIT_GEOJSON, plus the

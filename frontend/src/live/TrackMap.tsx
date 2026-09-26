@@ -4,6 +4,7 @@ import type { DriverInfo, PositionEntry, WeatherInfo } from "./types";
 import { resolveCircuitKey, geoJsonToSvgPath, geoJsonToScreenPoints, fallbackTrackPath } from "../circuits/track";
 import { CIRCUIT_GEOJSON } from "../circuits";
 import START_FINISH from "../circuits/start_finish.json";
+import FEED_CALIBRATION from "../circuits/feed_calibration.json";
 
 interface Bounds {
   minX: number;
@@ -113,6 +114,19 @@ export function TrackMap({ drivers, positions, selectedDriver, sessionName, weat
     );
     if (withCoords.length === 0) return [];
 
+    const calib = circuitKey
+      ? (FEED_CALIBRATION as Record<string, { a: number; b: number; c: number; d: number; e: number; f: number }>)[
+          circuitKey
+        ]
+      : null;
+    if (calib) {
+      return withCoords.map(([racingNumber, p]) => ({
+        racingNumber,
+        normX: 20 + (calib.a * p.x + calib.b * p.y + calib.c) * 360,
+        normY: 20 + (1 - (calib.d * p.x + calib.e * p.y + calib.f)) * 360,
+      }));
+    }
+
     boundsRef.current = expandBounds(
       boundsRef.current,
       withCoords.map(([, p]) => p.x),
@@ -125,12 +139,9 @@ export function TrackMap({ drivers, positions, selectedDriver, sessionName, weat
     return withCoords.map(([racingNumber, p]) => ({
       racingNumber,
       normX: ((p.x - bounds.minX) / rangeX) * 360 + 20,
-      // Y is flipped to match the track path's maxLat-first mapping, so the
-      // feed's north-up frame overlays the GeoJSON outline instead of
-      // mirroring it.
       normY: ((bounds.maxY - p.y) / rangeY) * 360 + 20,
     }));
-  }, [positions]);
+  }, [positions, circuitKey]);
 
   return (
     <div className="mkbhd-card relative w-full bg-mkbhd-black p-10 border-white/5">
