@@ -1,13 +1,12 @@
 @import 'tailwindcss';
 
 @theme {
-  --color-mkbhd-black: #0a0a0a;
-  --color-mkbhd-studio: #141414;
-  --color-mkbhd-red: #cc0000;
-  --color-mkbhd-gray: #a3a3a3;
-  --color-mkbhd-border: rgba(255, 255, 255, 0.1);
+  --color-ink: #0a0a0a;
+  --color-surface: #141414;
+  --color-accent: #cc0000;
+  --color-muted: #a3a3a3;
   --font-sans: 'Inter', system-ui, sans-serif;
-  --radius-mkbhd: 1.25rem;
+  --radius-panel: 1.25rem;
 }
 
 @utility scrollbar-hide {
@@ -28,24 +27,24 @@
   }
 }
 
-@utility mkbhd-card {
-  @apply bg-mkbhd-studio border border-white/10 rounded-mkbhd transition-all duration-300;
+@utility panel {
+  @apply bg-surface border border-white/10 rounded-panel transition-all duration-300;
 }
 
-@utility mkbhd-btn-primary {
-  @apply bg-mkbhd-red text-white px-6 py-3 font-bold rounded-lg transition-all hover:brightness-110 active:scale-95;
+@utility btn-primary {
+  @apply bg-accent text-white px-6 py-3 font-bold rounded-lg transition-all hover:brightness-110 active:scale-95;
 }
 
-@utility mkbhd-btn-secondary {
+@utility btn-secondary {
   @apply bg-white/5 border border-white/10 text-white px-6 py-3 font-bold rounded-lg transition-all hover:bg-white/10 active:scale-95;
 }
 
 @utility text-secondary {
-  @apply text-mkbhd-gray;
+  @apply text-muted;
 }
 
 @utility studio-header {
-  @apply bg-mkbhd-black/90 backdrop-blur-xl border-b border-white/5 sticky top-0 z-150;
+  @apply bg-ink/90 backdrop-blur-xl border-b border-white/5 sticky top-0 z-150;
 }
 
 @layer base {
@@ -53,7 +52,7 @@
     color-scheme: dark;
   }
   body {
-    @apply bg-mkbhd-black text-white font-sans overflow-x-hidden selection:bg-mkbhd-red selection:text-white;
+    @apply bg-ink text-white font-sans overflow-x-hidden selection:bg-accent selection:text-white;
   }
 }
 
@@ -62,10 +61,10 @@
   width: 8px;
 }
 ::-webkit-scrollbar-track {
-  @apply bg-mkbhd-black;
+  @apply bg-ink;
 }
 ::-webkit-scrollbar-thumb {
-  @apply bg-mkbhd-studio border border-white/5 rounded-full hover:bg-mkbhd-red/20 transition-colors;
+  @apply bg-surface border border-white/5 rounded-full hover:bg-accent/20 transition-colors;
 }
 
 /* Animations */
@@ -74,6 +73,6 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
-.animate-mkbhd-reveal {
+.animate-reveal {
   animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }

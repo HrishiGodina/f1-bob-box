@@ -8,7 +8,7 @@ export const StudioButton = ({ children, onClick, variant = 'primary', className
 }) => (
   <button
     onClick={onClick}
-    className={`${variant === 'primary' ? 'mkbhd-btn-primary' : 'mkbhd-btn-secondary'} ${className} transform transition-transform hover:scale-[1.02] active:scale-[0.98]`}
+    className={`${variant === 'primary' ? 'btn-primary' : 'btn-secondary'} ${className} transform transition-transform hover:scale-[1.02] active:scale-[0.98]`}
   >
     {children}
   </button>

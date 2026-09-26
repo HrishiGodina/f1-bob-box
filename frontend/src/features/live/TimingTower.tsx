@@ -14,7 +14,7 @@ function PositionChange({ change }: { change: number | undefined }) {
   return (
     <span
       className={`flex items-center gap-0.5 text-[10px] font-black tabular-nums shrink-0 ${
-        gained ? "text-emerald-400" : "text-mkbhd-red"
+        gained ? "text-emerald-400" : "text-accent"
       }`}
     >
       <Icon size={10} strokeWidth={3} />
@@ -55,7 +55,7 @@ function TyreBadge({ compound, age }: { compound: string | null; age: number | n
       >
         {letter}
       </div>
-      <span className="text-[11px] font-mono text-mkbhd-gray tabular-nums">{age ?? 0}L</span>
+      <span className="text-[11px] font-mono text-muted tabular-nums">{age ?? 0}L</span>
     </div>
   );
 }
@@ -84,7 +84,7 @@ function comparePosition(
 // booleans only (handoff §7 decision 4) — the per-segment Status codes are
 // an unverified guess and deliberately not used for the primary coloring.
 function sectorClass(sector: SectorTime | undefined): string {
-  if (!sector || sector.Value === undefined) return "bg-white/3 text-mkbhd-gray/50";
+  if (!sector || sector.Value === undefined) return "bg-white/3 text-muted/50";
   if (sector.OverallFastest) return "bg-[#b45cff] text-white";
   if (sector.PersonalFastest) return "bg-emerald-500 text-black";
   return "bg-white/10 text-white";
@@ -125,15 +125,15 @@ export function TimingTower({
   const rows = Object.entries(timing).sort((a, b) => comparePosition(a, b, drivers));
 
   return (
-    <div className="mkbhd-card p-0 overflow-hidden bg-white/1">
-      <div className="px-8 py-6 bg-mkbhd-red flex justify-between items-center">
+    <div className="panel p-0 overflow-hidden bg-white/1">
+      <div className="px-8 py-6 bg-accent flex justify-between items-center">
         <span className="font-black uppercase italic tracking-tighter text-lg">Running Order</span>
         <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/70">{rows.length} Cars</span>
       </div>
 
       <div className="overflow-x-auto custom-scrollbar">
         <div className="min-w-160">
-          <div className={`${ROW_GRID} px-6 py-3 border-b border-white/5 text-[9px] font-black uppercase tracking-[0.2em] text-mkbhd-gray`}>
+          <div className={`${ROW_GRID} px-6 py-3 border-b border-white/5 text-[9px] font-black uppercase tracking-[0.2em] text-muted`}>
             <span className="text-right">Pos</span>
             <span>Driver</span>
             <span>Tyre</span>
@@ -147,7 +147,7 @@ export function TimingTower({
 
           <div className="p-2">
             {rows.length === 0 && (
-              <div className="p-8 text-center text-mkbhd-gray text-xs uppercase tracking-widest">
+              <div className="p-8 text-center text-muted text-xs uppercase tracking-widest">
                 Waiting for timing data...
               </div>
             )}
@@ -165,7 +165,7 @@ export function TimingTower({
                   transition={{ type: "spring", stiffness: 350, damping: 32 }}
                   onClick={() => onSelectDriver(racingNumber)}
                   className={`${ROW_GRID} px-4 py-3 rounded-2xl cursor-pointer transition-colors ${
-                    isSelected ? "bg-mkbhd-red/15" : "hover:bg-white/3"
+                    isSelected ? "bg-accent/15" : "hover:bg-white/3"
                   } ${line.retired ? "opacity-40" : ""}`}
                 >
                   <span className="text-lg font-black text-white/30 text-right tabular-nums">{line.position ?? "-"}</span>
@@ -186,22 +186,22 @@ export function TimingTower({
                           </span>
                         )}
                         {flags?.pendingPenalty && !flags?.investigating && (
-                          <span title={`Unserved penalty (${flags.pendingPenalty})`} className="text-mkbhd-red shrink-0">
+                          <span title={`Unserved penalty (${flags.pendingPenalty})`} className="text-accent shrink-0">
                             <TriangleAlert size={11} strokeWidth={2.5} />
                           </span>
                         )}
                         {line.in_pit && (
-                          <span className="text-[8px] font-black text-mkbhd-red border border-mkbhd-red/50 rounded-sm px-1 py-0.5 not-italic tracking-widest">
+                          <span className="text-[8px] font-black text-accent border border-accent/50 rounded-sm px-1 py-0.5 not-italic tracking-widest">
                             PIT
                           </span>
                         )}
                         {line.retired && (
-                          <span className="text-[8px] font-black text-mkbhd-gray border border-white/20 rounded-sm px-1 py-0.5 not-italic tracking-widest">
+                          <span className="text-[8px] font-black text-muted border border-white/20 rounded-sm px-1 py-0.5 not-italic tracking-widest">
                             OUT
                           </span>
                         )}
                       </div>
-                      <div className="text-[9px] font-bold text-mkbhd-gray uppercase truncate tracking-wide mt-1">
+                      <div className="text-[9px] font-bold text-muted uppercase truncate tracking-wide mt-1">
                         {driver?.team_name ?? "—"}
                       </div>
                     </div>
@@ -218,7 +218,7 @@ export function TimingTower({
                   <div className="min-w-0">
                     <div className="text-[11px] font-mono text-white tabular-nums truncate">{line.gap_to_leader || "LEADER"}</div>
                     {line.interval && (
-                      <div className={`text-[9px] font-mono tabular-nums truncate ${line.catching ? "text-emerald-400" : "text-mkbhd-gray"}`}>
+                      <div className={`text-[9px] font-mono tabular-nums truncate ${line.catching ? "text-emerald-400" : "text-muted"}`}>
                         {line.interval}
                       </div>
                     )}

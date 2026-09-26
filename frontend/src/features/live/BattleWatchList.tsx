@@ -13,8 +13,8 @@ export function BattleWatchList({ battles, telemetry, timing }: BattleWatchListP
   if (live.length === 0) return null;
 
   return (
-    <div className="mkbhd-card p-6 space-y-4">
-      <div className="text-[10px] font-black uppercase tracking-[0.3em] text-mkbhd-red">Battle Watch</div>
+    <div className="panel p-6 space-y-4">
+      <div className="text-[10px] font-black uppercase tracking-[0.3em] text-accent">Battle Watch</div>
       <div className="space-y-2 max-h-64 overflow-y-auto">
         {live.map((battle) => {
           const behindSpeed = telemetry[battle.behindNumber]?.speed;
@@ -30,13 +30,13 @@ export function BattleWatchList({ battles, telemetry, timing }: BattleWatchListP
               <span className="font-black">
                 P{battle.behindPosition} {battle.behindTla}
               </span>
-              <span className={`font-mono tabular-nums ${behindFaster ? "text-emerald-400 font-black" : "text-mkbhd-gray"}`}>
+              <span className={`font-mono tabular-nums ${behindFaster ? "text-emerald-400 font-black" : "text-muted"}`}>
                 {behindLap ?? "—"}
               </span>
-              <span className="text-mkbhd-gray">{behindSpeed ?? "--"} KM/H</span>
-              <span className="text-mkbhd-red font-black">{battle.gapSeconds.toFixed(1)}s</span>
-              <span className="text-mkbhd-gray">{aheadSpeed ?? "--"} KM/H</span>
-              <span className={`font-mono tabular-nums ${aheadFaster ? "text-emerald-400 font-black" : "text-mkbhd-gray"}`}>
+              <span className="text-muted">{behindSpeed ?? "--"} KM/H</span>
+              <span className="text-accent font-black">{battle.gapSeconds.toFixed(1)}s</span>
+              <span className="text-muted">{aheadSpeed ?? "--"} KM/H</span>
+              <span className={`font-mono tabular-nums ${aheadFaster ? "text-emerald-400 font-black" : "text-muted"}`}>
                 {aheadLap ?? "—"}
               </span>
               <span className="font-black">

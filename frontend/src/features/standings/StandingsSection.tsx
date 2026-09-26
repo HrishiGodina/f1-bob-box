@@ -23,15 +23,15 @@ export function StandingsSection({ onOpenArchive, onSelectProfile }: StandingsSe
 
   return (
     <section id="standings">
-      <div className="mkbhd-card p-12 bg-white/1 flex flex-col border-white/10 rounded-[2.5rem]">
+      <div className="panel p-12 bg-white/1 flex flex-col border-white/10 rounded-[2.5rem]">
          <div className="flex flex-col md:flex-row md:items-center gap-6 mb-12">
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-white/5 rounded-2xl text-mkbhd-red"><Trophy size={24} /></div>
+              <div className="p-3 bg-white/5 rounded-2xl text-accent"><Trophy size={24} /></div>
               <h2 className="text-lg font-black uppercase tracking-widest italic text-white">World Championship</h2>
             </div>
             <div className="flex bg-white/5 p-1.5 rounded-2xl border border-white/10 self-start">
               {(['drivers', 'teams'] as const).map(type => (
-                <button key={type} onClick={() => setStandingsType(type)} className={`px-6 py-2.5 text-[10px] font-black uppercase transition-all rounded-xl ${standingsType === type ? 'bg-mkbhd-red text-white shadow-lg shadow-mkbhd-red/20' : 'text-mkbhd-gray hover:text-white'}`}>{type}</button>
+                <button key={type} onClick={() => setStandingsType(type)} className={`px-6 py-2.5 text-[10px] font-black uppercase transition-all rounded-xl ${standingsType === type ? 'bg-accent text-white shadow-lg shadow-accent/20' : 'text-muted hover:text-white'}`}>{type}</button>
               ))}
             </div>
             <div className="md:ml-auto">
@@ -44,15 +44,15 @@ export function StandingsSection({ onOpenArchive, onSelectProfile }: StandingsSe
               const teamId = isDriverStanding(s) ? s.Constructors?.[0]?.constructorId : entityId;
               return (
                 <motion.div key={i} whileHover={{ x: 6 }} onClick={() => onSelectProfile(standingsType === 'drivers' ? 'driver' : 'constructor', entityId)} className="flex items-center gap-4 group cursor-pointer border-b border-white/3 py-5 last:border-0">
-                   <span className="text-2xl font-black italic text-white/5 group-hover:text-mkbhd-red transition-all w-8 shrink-0">{(i+1).toString().padStart(2, '0')}</span>
+                   <span className="text-2xl font-black italic text-white/5 group-hover:text-accent transition-all w-8 shrink-0">{(i+1).toString().padStart(2, '0')}</span>
                    <TeamLogo teamId={teamId} className="w-10 h-10 shrink-0" />
                    <div className="flex-1 min-w-0">
-                      <div className="text-lg font-black uppercase text-white group-hover:text-mkbhd-red transition-all italic tracking-tight truncate">{isDriverStanding(s) ? s.Driver.familyName : s.Constructor.name}</div>
-                      <div className="text-[9px] font-bold text-mkbhd-gray uppercase tracking-[0.35em] italic opacity-50 truncate">{isDriverStanding(s) ? s.Driver.nationality : s.Constructor.nationality}</div>
+                      <div className="text-lg font-black uppercase text-white group-hover:text-accent transition-all italic tracking-tight truncate">{isDriverStanding(s) ? s.Driver.familyName : s.Constructor.name}</div>
+                      <div className="text-[9px] font-bold text-muted uppercase tracking-[0.35em] italic opacity-50 truncate">{isDriverStanding(s) ? s.Driver.nationality : s.Constructor.nationality}</div>
                    </div>
                    <div className="text-right shrink-0 flex items-baseline gap-1.5">
                       <span className="text-xl font-black text-white italic leading-none">{s.points}</span>
-                      <span className="text-[9px] font-black text-mkbhd-red uppercase tracking-wider">PTS</span>
+                      <span className="text-[9px] font-black text-accent uppercase tracking-wider">PTS</span>
                    </div>
                 </motion.div>
               );

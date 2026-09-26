@@ -32,12 +32,12 @@ export function CareerModal({ isOpen, onClose, type, id }: CareerModalProps) {
     <StudioModal isOpen={isOpen} onClose={onClose} title={`${type?.toUpperCase()} PROFILE`}>
       {isPending ? (
         <div className="h-96 flex items-center justify-center">
-          <div className="text-mkbhd-red animate-pulse font-black italic text-4xl">LINKING_SATELLITE...</div>
+          <div className="text-accent animate-pulse font-black italic text-4xl">LINKING_SATELLITE...</div>
         </div>
       ) : data ? (
         <div className="space-y-12">
           <div className="flex flex-col md:flex-row gap-12 items-center md:items-start">
-            <div className="w-48 h-48 bg-mkbhd-black rounded-[3rem] border border-white/10 flex items-center justify-center text-8xl font-black italic text-white/10">
+            <div className="w-48 h-48 bg-ink rounded-[3rem] border border-white/10 flex items-center justify-center text-8xl font-black italic text-white/10">
               {type === 'driver' ? <User size={80} /> : <Users size={80} />}
             </div>
             <div className="flex-1 space-y-6 text-center md:text-left">
@@ -45,10 +45,10 @@ export function CareerModal({ isOpen, onClose, type, id }: CareerModalProps) {
                 {type === 'driver' ? `${data.info?.givenName} ${data.info?.familyName}` : data.info?.name}
               </h3>
               <div className="flex flex-wrap justify-center md:justify-start gap-6">
-                <div className="px-6 py-2 bg-mkbhd-red/20 border border-mkbhd-red/30 rounded-full text-mkbhd-red text-[10px] font-black uppercase tracking-widest">
+                <div className="px-6 py-2 bg-accent/20 border border-accent/30 rounded-full text-accent text-[10px] font-black uppercase tracking-widest">
                   {data.info?.nationality}
                 </div>
-                <div className="px-6 py-2 bg-white/5 border border-white/10 rounded-full text-mkbhd-gray text-[10px] font-black uppercase tracking-widest">
+                <div className="px-6 py-2 bg-white/5 border border-white/10 rounded-full text-muted text-[10px] font-black uppercase tracking-widest">
                   ID: {id}
                 </div>
               </div>
@@ -56,20 +56,20 @@ export function CareerModal({ isOpen, onClose, type, id }: CareerModalProps) {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-            <div className="mkbhd-card p-12 flex flex-col items-center justify-center bg-white/2">
+            <div className="panel p-12 flex flex-col items-center justify-center bg-white/2">
               <div className="text-8xl font-black italic text-white mb-4">{data.wins}</div>
-              <div className="text-[10px] font-black text-mkbhd-gray uppercase tracking-[0.5em]">Career Victories</div>
+              <div className="text-[10px] font-black text-muted uppercase tracking-[0.5em]">Career Victories</div>
             </div>
-            <div className="mkbhd-card p-12 flex flex-col items-center justify-center bg-mkbhd-red/5">
-              <div className="text-8xl font-black italic text-mkbhd-red mb-4">{data.championships}</div>
-              <div className="text-[10px] font-black text-mkbhd-gray uppercase tracking-[0.5em]">World Titles</div>
+            <div className="panel p-12 flex flex-col items-center justify-center bg-accent/5">
+              <div className="text-8xl font-black italic text-accent mb-4">{data.championships}</div>
+              <div className="text-[10px] font-black text-muted uppercase tracking-[0.5em]">World Titles</div>
             </div>
           </div>
 
           {type === 'driver' && data.career_teams && (
             <div className="space-y-8">
-              <h4 className="text-xs font-black uppercase tracking-[0.4em] text-mkbhd-gray flex items-center gap-3">
-                <Activity size={14} className="text-mkbhd-red" /> Team History
+              <h4 className="text-xs font-black uppercase tracking-[0.4em] text-muted flex items-center gap-3">
+                <Activity size={14} className="text-accent" /> Team History
               </h4>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                 {data.career_teams.map((t) => (

@@ -16,7 +16,7 @@ export function CompactTelemetry({ drivers, telemetry, selectedDriver }: Compact
 
   if (!selectedDriver) {
     return (
-      <div className="mkbhd-card p-4 text-center text-[10px] font-black uppercase tracking-widest text-mkbhd-gray">
+      <div className="panel p-4 text-center text-[10px] font-black uppercase tracking-widest text-muted">
         Select a driver to view telemetry
       </div>
     );
@@ -29,29 +29,29 @@ export function CompactTelemetry({ drivers, telemetry, selectedDriver }: Compact
   const brake = channels?.brake ?? 0;
 
   return (
-    <div className="mkbhd-card p-4 space-y-4">
-      <div className="text-[10px] font-black text-mkbhd-gray uppercase tracking-[0.3em]">
+    <div className="panel p-4 space-y-4">
+      <div className="text-[10px] font-black text-muted uppercase tracking-[0.3em]">
         Tracking: <span className="text-white italic">{driver?.tla ?? `#${selectedDriver}`}</span>
       </div>
 
       <div className="grid grid-cols-3 gap-2 text-center">
         <div className="bg-white/5 rounded-lg py-3">
           <div className="text-xl font-black italic leading-none">{speed}</div>
-          <div className="text-[9px] font-bold text-mkbhd-gray uppercase tracking-widest mt-1">Km/h</div>
+          <div className="text-[9px] font-bold text-muted uppercase tracking-widest mt-1">Km/h</div>
         </div>
         <div className="bg-white/5 rounded-lg py-3">
-          <div className="text-xl font-black italic leading-none text-mkbhd-red">{rpm}</div>
-          <div className="text-[9px] font-bold text-mkbhd-gray uppercase tracking-widest mt-1">RPM</div>
+          <div className="text-xl font-black italic leading-none text-accent">{rpm}</div>
+          <div className="text-[9px] font-bold text-muted uppercase tracking-widest mt-1">RPM</div>
         </div>
         <div className="bg-white/5 rounded-lg py-3">
           <div className="text-xl font-black italic leading-none">{gear}</div>
-          <div className="text-[9px] font-bold text-mkbhd-gray uppercase tracking-widest mt-1">Gear</div>
+          <div className="text-[9px] font-bold text-muted uppercase tracking-widest mt-1">Gear</div>
         </div>
       </div>
 
       <div className="space-y-2">
         <div>
-          <div className="text-[9px] font-black text-mkbhd-gray uppercase mb-1 flex justify-between tracking-widest">
+          <div className="text-[9px] font-black text-muted uppercase mb-1 flex justify-between tracking-widest">
             <span>Throttle</span>
             <span className="text-white italic">{throttle}%</span>
           </div>
@@ -60,12 +60,12 @@ export function CompactTelemetry({ drivers, telemetry, selectedDriver }: Compact
           </div>
         </div>
         <div>
-          <div className="text-[9px] font-black text-mkbhd-gray uppercase mb-1 flex justify-between tracking-widest">
+          <div className="text-[9px] font-black text-muted uppercase mb-1 flex justify-between tracking-widest">
             <span>Brake</span>
-            <span className="text-mkbhd-red italic">{brake}%</span>
+            <span className="text-accent italic">{brake}%</span>
           </div>
           <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
-            <div style={{ width: `${brake}%` }} className="h-full bg-mkbhd-red rounded-full transition-all duration-300" />
+            <div style={{ width: `${brake}%` }} className="h-full bg-accent rounded-full transition-all duration-300" />
           </div>
         </div>
       </div>

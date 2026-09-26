@@ -18,8 +18,8 @@ function messageStyle(message: string): { bar: string; text: string } {
   if (upper.includes("SAFETY CAR") || upper.includes("VSC")) return { bar: "bg-orange-500", text: "text-orange-400" };
   if (upper.includes("CHEQUERED")) return { bar: "bg-white", text: "text-white" };
   if (upper.includes("DRS")) return { bar: "bg-sky-500", text: "text-sky-400" };
-  if (upper.includes("INVESTIGAT") || upper.includes("PENALTY")) return { bar: "bg-mkbhd-red", text: "text-mkbhd-red" };
-  return { bar: "bg-white/20", text: "text-mkbhd-gray" };
+  if (upper.includes("INVESTIGAT") || upper.includes("PENALTY")) return { bar: "bg-accent", text: "text-accent" };
+  return { bar: "bg-white/20", text: "text-muted" };
 }
 
 export interface RaceControlTickerProps {
@@ -59,8 +59,8 @@ export function RaceControlTicker({ messages }: RaceControlTickerProps) {
 
   return (
     <div
-      className={`mkbhd-card px-6 py-3 transition-colors duration-500 ${
-        highlighted ? "bg-mkbhd-red/10 border border-mkbhd-red/50" : ""
+      className={`panel px-6 py-3 transition-colors duration-500 ${
+        highlighted ? "bg-accent/10 border border-accent/50" : ""
       }`}
     >
       <button
@@ -90,14 +90,14 @@ export function RaceControlTicker({ messages }: RaceControlTickerProps) {
               </AnimatePresence>
             </div>
             {canExpand && (
-              <div className="flex items-center gap-1 text-[10px] font-mono text-mkbhd-gray shrink-0">
+              <div className="flex items-center gap-1 text-[10px] font-mono text-muted shrink-0">
                 +{rest.length} more
                 {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
               </div>
             )}
           </>
         ) : (
-          <div className="text-mkbhd-gray text-xs uppercase tracking-widest">No messages yet</div>
+          <div className="text-muted text-xs uppercase tracking-widest">No messages yet</div>
         )}
       </button>
 

@@ -51,7 +51,7 @@ export interface TrackMapProps {
 function WeatherStat({ label, value, unit }: { label: string; value: string | undefined; unit: string }) {
   return (
     <div className="flex-1 text-center">
-      <div className="text-[8px] font-black uppercase tracking-[0.25em] text-mkbhd-gray">{label}</div>
+      <div className="text-[8px] font-black uppercase tracking-[0.25em] text-muted">{label}</div>
       <div className="text-sm font-black tabular-nums mt-0.5">{value ? `${value}${unit}` : "—"}</div>
     </div>
   );
@@ -144,11 +144,11 @@ export function TrackMap({ drivers, positions, selectedDriver, sessionName, weat
   }, [positions, circuitKey]);
 
   return (
-    <div className="mkbhd-card relative w-full bg-mkbhd-black p-10 border-white/5">
+    <div className="panel relative w-full bg-ink p-10 border-white/5">
       <div className="flex items-center gap-3 mb-10">
         <h2 className="text-xs font-black uppercase tracking-[0.3em]">Grid Telemetry</h2>
       </div>
-      <div className="relative w-full aspect-square border border-white/5 rounded-4xl bg-mkbhd-studio/50 backdrop-blur-xs overflow-hidden">
+      <div className="relative w-full aspect-square border border-white/5 rounded-4xl bg-surface/50 backdrop-blur-xs overflow-hidden">
         <svg className="w-full h-full" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid meet">
           {trackPath && (
             <path d={trackPath} stroke="white" strokeOpacity={0.12} strokeWidth={2} fill="none" />
@@ -184,7 +184,7 @@ export function TrackMap({ drivers, positions, selectedDriver, sessionName, weat
           })}
         </svg>
         {points.length === 0 && (
-          <div className="absolute inset-0 flex items-center justify-center text-mkbhd-gray text-xs uppercase tracking-widest">
+          <div className="absolute inset-0 flex items-center justify-center text-muted text-xs uppercase tracking-widest">
             No position data yet
           </div>
         )}

@@ -13,14 +13,14 @@ interface StatProps {
 // thing at a glance.
 function Stat({ label, value, sub, accent }: StatProps) {
   return (
-    <div className="mkbhd-card p-3 flex items-stretch gap-2 bg-white/1">
+    <div className="panel p-3 flex items-stretch gap-2 bg-white/1">
       <div className="w-1 rounded-full shrink-0" style={{ backgroundColor: accent }} />
       <div className="min-w-0">
-        <div className="text-[9px] font-black uppercase tracking-[0.25em] text-mkbhd-gray">{label}</div>
+        <div className="text-[9px] font-black uppercase tracking-[0.25em] text-muted">{label}</div>
         <div className="text-lg font-black italic uppercase tracking-tighter leading-tight mt-0.5 truncate" style={{ color: accent }}>
           {value}
         </div>
-        {sub && <div className="text-[9px] font-bold uppercase tracking-widest text-mkbhd-gray mt-0.5 truncate">{sub}</div>}
+        {sub && <div className="text-[9px] font-bold uppercase tracking-widest text-muted mt-0.5 truncate">{sub}</div>}
       </div>
     </div>
   );
