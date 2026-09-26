@@ -1,7 +1,7 @@
 import { useIdleData } from '../../shared/api/useIdleData';
 import { CompletedSeason } from './CompletedSeason';
 import { UpcomingRaces } from './UpcomingRaces';
-import type { CircuitSummary } from './types';
+import type { CircuitSummary, ScheduleRace } from './types';
 
 export interface SeasonSectionsProps {
   onSelectCircuit: (circuit: CircuitSummary) => void;
@@ -9,9 +9,12 @@ export interface SeasonSectionsProps {
 
 export function SeasonSections({ onSelectCircuit }: SeasonSectionsProps) {
   const { data: idleData } = useIdleData();
-  const today = new Date().toISOString().slice(0, 10);
-  const completed = idleData?.schedule?.filter((r) => r.date < today) || [];
-  const upcoming = idleData?.schedule?.filter((r) => r.date >= today) || [];
+  const now = Date.now();
+  const raceStart = (race: ScheduleRace): number =>
+    Date.parse(`${race.date}T${typeof race.time === 'string' ? race.time : '00:00:00Z'}`);
+  const schedule = idleData?.schedule || [];
+  const completed = schedule.filter((r) => raceStart(r) <= now);
+  const upcoming = schedule.filter((r) => raceStart(r) > now);
   return (
     <>
       {completed.length > 0 && <CompletedSeason races={completed} onSelectCircuit={onSelectCircuit} />}
