@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { LivePatch, LiveSnapshot } from "./types";
 import { INITIAL_LIVE_STATE, applyLivePatch, deriveWsUrl } from "./liveState";
 
-const API_BASE = (import.meta as any).env?.VITE_API_BASE ?? "http://localhost:8000/api";
+const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8000/api";
 
 // The frontend's own reconnect delay for the browser <-> backend /ws/live
 // link. This is unrelated to (and much simpler than) BACKOFF_SCHEDULE in

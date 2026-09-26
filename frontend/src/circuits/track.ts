@@ -1,4 +1,4 @@
-import { CIRCUIT_GEOJSON } from './index';
+import { CIRCUIT_GEOJSON, type CircuitGeoJson } from './index';
 
 // Slug validation/passthrough map — maps user input to canonical circuit identifiers
 export const CIRCUIT_ID_MAP: Record<string, string> = {
@@ -13,13 +13,11 @@ export const CIRCUIT_ID_MAP: Record<string, string> = {
   madring: 'madring', sepang: 'sepang',
 };
 
-export const geoJsonToScreenPoints = (geojson: any, w = 440, h = 310, pad = 24, stretch = false): [number, number][] => {
+export const geoJsonToScreenPoints = (geojson: CircuitGeoJson | null | undefined, w = 440, h = 310, pad = 24, stretch = false): [number, number][] => {
   try {
-    const feat = geojson?.features?.[0];
-    if (!feat) return [];
-    const coords: [number, number][] = feat.geometry.type === 'LineString'
-      ? feat.geometry.coordinates
-      : feat.geometry.coordinates[0];
+    const geometry = geojson?.features?.[0]?.geometry;
+    const raw = geometry?.type === 'LineString' ? geometry.coordinates : geometry?.coordinates?.[0];
+    const coords = (raw ?? []) as [number, number][];
     if (!coords?.length) return [];
 
     const lons = coords.map((c) => c[0]);
@@ -49,13 +47,11 @@ export const geoJsonToScreenPoints = (geojson: any, w = 440, h = 310, pad = 24, 
  * Convert GeoJSON feature geometry to SVG path string with automatic scaling/centering.
  * Handles both LineString and Polygon geometries. Returns empty string on error.
  */
-export const geoJsonToSvgPath = (geojson: any, w = 440, h = 310, pad = 24, stretch = false): string => {
+export const geoJsonToSvgPath = (geojson: CircuitGeoJson | null | undefined, w = 440, h = 310, pad = 24, stretch = false): string => {
   try {
-    const feat = geojson?.features?.[0];
-    if (!feat) return '';
-    const coords: [number, number][] = feat.geometry.type === 'LineString'
-      ? feat.geometry.coordinates
-      : feat.geometry.coordinates[0];
+    const geometry = geojson?.features?.[0]?.geometry;
+    const raw = geometry?.type === 'LineString' ? geometry.coordinates : geometry?.coordinates?.[0];
+    const coords = (raw ?? []) as [number, number][];
     if (!coords?.length) return '';
 
     const pts = geoJsonToScreenPoints(geojson, w, h, pad, stretch);

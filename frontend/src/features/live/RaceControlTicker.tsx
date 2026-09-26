@@ -68,10 +68,10 @@ export function RaceControlTicker({ messages }: RaceControlTickerProps) {
         onClick={() => canExpand && setExpanded((v) => !v)}
         className={`w-full flex items-center gap-4 min-h-[32px] text-left ${canExpand ? "cursor-pointer" : "cursor-default"}`}
       >
-        <h2 className="text-xs font-black uppercase tracking-[0.3em] flex-shrink-0">Race Control</h2>
+        <h2 className="text-xs font-black uppercase tracking-[0.3em] shrink-0">Race Control</h2>
         {latest && style ? (
           <>
-            <div className={`w-1 self-stretch rounded-full flex-shrink-0 ${style.bar}`} />
+            <div className={`w-1 self-stretch rounded-full shrink-0 ${style.bar}`} />
             <div className="min-w-0 flex-1 truncate">
               <AnimatePresence mode="wait">
                 <motion.span
@@ -90,7 +90,7 @@ export function RaceControlTicker({ messages }: RaceControlTickerProps) {
               </AnimatePresence>
             </div>
             {canExpand && (
-              <div className="flex items-center gap-1 text-[10px] font-mono text-mkbhd-gray flex-shrink-0">
+              <div className="flex items-center gap-1 text-[10px] font-mono text-mkbhd-gray shrink-0">
                 +{rest.length} more
                 {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
               </div>
@@ -108,7 +108,7 @@ export function RaceControlTicker({ messages }: RaceControlTickerProps) {
             const messageStyleInfo = messageStyle(messageText);
             return (
               <div key={index} className="flex items-center gap-4">
-                <div className={`w-1 h-4 rounded-full flex-shrink-0 ${messageStyleInfo.bar}`} />
+                <div className={`w-1 h-4 rounded-full shrink-0 ${messageStyleInfo.bar}`} />
                 <span className={`text-sm font-bold uppercase italic ${messageStyleInfo.text}`}>
                   {messageText}
                 </span>

@@ -1,0 +1,1343 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "F1 Dashboard API",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/f1auth/status": {
+      "get": {
+        "summary": "F1Auth Status",
+        "operationId": "f1auth_status_api_f1auth_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/F1AuthStatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/f1auth/refresh/start": {
+      "post": {
+        "summary": "F1Auth Refresh Start",
+        "operationId": "f1auth_refresh_start_api_f1auth_refresh_start_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefreshStartResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/status": {
+      "get": {
+        "summary": "Get Status",
+        "operationId": "get_status_api_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/idle-data": {
+      "get": {
+        "summary": "Get Idle Data",
+        "description": "Fetches standings and news for the idle dashboard.",
+        "operationId": "get_idle_data_api_idle_data_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdleDataResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/milestones": {
+      "get": {
+        "summary": "Get Milestones",
+        "description": "Stats to be beaten for the upcoming race. Simplified prototype.",
+        "operationId": "get_milestones_api_milestones_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/MilestonesResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/MilestoneErrorResponse"
+                    }
+                  ],
+                  "title": "Response Get Milestones Api Milestones Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/driver/{driver_id}/stats": {
+      "get": {
+        "summary": "Get Driver Stats",
+        "description": "Fetches career statistics for a specific driver.",
+        "operationId": "get_driver_stats_api_driver__driver_id__stats_get",
+        "parameters": [
+          {
+            "name": "driver_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Driver Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DriverStatsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/constructor/{constructor_id}/stats": {
+      "get": {
+        "summary": "Get Constructor Stats",
+        "description": "Fetches career statistics for a specific constructor.",
+        "operationId": "get_constructor_stats_api_constructor__constructor_id__stats_get",
+        "parameters": [
+          {
+            "name": "constructor_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Constructor Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConstructorStatsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/circuit/{circuit_id}": {
+      "get": {
+        "summary": "Get Circuit Details",
+        "description": "Detailed circuit info plus historical data for the given season.\nseason=2026 fetches 2025 results (season-1); returns available_years.",
+        "operationId": "get_circuit_details_api_circuit__circuit_id__get",
+        "parameters": [
+          {
+            "name": "circuit_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Circuit Id"
+            }
+          },
+          {
+            "name": "season",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 2026,
+              "title": "Season"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CircuitDetailsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/race-weekend/{circuit_id}": {
+      "get": {
+        "summary": "Get Race Weekend",
+        "description": "Results for one session of a race weekend: race | quali | sprint | fp1 | fp2 | fp3.\nFP sessions are only available for year >= 2023 via OpenF1.",
+        "operationId": "get_race_weekend_api_race_weekend__circuit_id__get",
+        "parameters": [
+          {
+            "name": "circuit_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Circuit Id"
+            }
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 2025,
+              "title": "Year"
+            }
+          },
+          {
+            "name": "session",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "race",
+              "title": "Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RaceWeekendResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CircuitDetailsResponse": {
+        "properties": {
+          "circuit": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CircuitRecord"
+              },
+              {
+                "additionalProperties": true,
+                "type": "object"
+              }
+            ],
+            "title": "Circuit"
+          },
+          "prev_results": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Prev Results"
+          },
+          "available_years": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Available Years"
+          },
+          "stats": {
+            "$ref": "#/components/schemas/CircuitStats"
+          },
+          "upgrades": {
+            "items": {
+              "$ref": "#/components/schemas/UpgradeRecord"
+            },
+            "type": "array",
+            "title": "Upgrades"
+          }
+        },
+        "type": "object",
+        "required": [
+          "circuit",
+          "prev_results",
+          "available_years",
+          "stats",
+          "upgrades"
+        ],
+        "title": "CircuitDetailsResponse"
+      },
+      "CircuitRecord": {
+        "properties": {
+          "circuitId": {
+            "type": "string",
+            "title": "Circuitid"
+          },
+          "circuitName": {
+            "type": "string",
+            "title": "Circuitname"
+          },
+          "Location": {
+            "$ref": "#/components/schemas/LocationRecord"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "circuitId",
+          "circuitName",
+          "Location"
+        ],
+        "title": "CircuitRecord"
+      },
+      "CircuitStats": {
+        "properties": {
+          "corners": {
+            "type": "integer",
+            "title": "Corners"
+          },
+          "elevation_gain": {
+            "type": "integer",
+            "title": "Elevation Gain"
+          },
+          "laps": {
+            "type": "integer",
+            "title": "Laps"
+          },
+          "lap_record": {
+            "type": "string",
+            "title": "Lap Record"
+          }
+        },
+        "type": "object",
+        "required": [
+          "corners",
+          "elevation_gain",
+          "laps",
+          "lap_record"
+        ],
+        "title": "CircuitStats"
+      },
+      "ConstructorRecord": {
+        "properties": {
+          "constructorId": {
+            "type": "string",
+            "title": "Constructorid"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "nationality": {
+            "type": "string",
+            "title": "Nationality"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "constructorId",
+          "name",
+          "nationality"
+        ],
+        "title": "ConstructorRecord"
+      },
+      "ConstructorStanding": {
+        "properties": {
+          "position": {
+            "type": "string",
+            "title": "Position"
+          },
+          "points": {
+            "type": "string",
+            "title": "Points"
+          },
+          "Constructor": {
+            "$ref": "#/components/schemas/ConstructorRecord"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "position",
+          "points",
+          "Constructor"
+        ],
+        "title": "ConstructorStanding"
+      },
+      "ConstructorStatsResponse": {
+        "properties": {
+          "info": {
+            "$ref": "#/components/schemas/ConstructorRecord"
+          },
+          "wins": {
+            "type": "string",
+            "title": "Wins"
+          },
+          "championships": {
+            "type": "integer",
+            "title": "Championships"
+          }
+        },
+        "type": "object",
+        "required": [
+          "info",
+          "wins",
+          "championships"
+        ],
+        "title": "ConstructorStatsResponse"
+      },
+      "DriverRecord": {
+        "properties": {
+          "driverId": {
+            "type": "string",
+            "title": "Driverid"
+          },
+          "givenName": {
+            "type": "string",
+            "title": "Givenname"
+          },
+          "familyName": {
+            "type": "string",
+            "title": "Familyname"
+          },
+          "nationality": {
+            "type": "string",
+            "title": "Nationality"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "driverId",
+          "givenName",
+          "familyName",
+          "nationality"
+        ],
+        "title": "DriverRecord"
+      },
+      "DriverStanding": {
+        "properties": {
+          "position": {
+            "type": "string",
+            "title": "Position"
+          },
+          "points": {
+            "type": "string",
+            "title": "Points"
+          },
+          "Driver": {
+            "$ref": "#/components/schemas/DriverRecord"
+          },
+          "Constructors": {
+            "items": {
+              "$ref": "#/components/schemas/ConstructorRecord"
+            },
+            "type": "array",
+            "title": "Constructors"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "position",
+          "points",
+          "Driver",
+          "Constructors"
+        ],
+        "title": "DriverStanding"
+      },
+      "DriverStatsResponse": {
+        "properties": {
+          "info": {
+            "$ref": "#/components/schemas/DriverRecord"
+          },
+          "wins": {
+            "type": "string",
+            "title": "Wins"
+          },
+          "championships": {
+            "type": "integer",
+            "title": "Championships"
+          },
+          "career_teams": {
+            "items": {
+              "$ref": "#/components/schemas/ConstructorRecord"
+            },
+            "type": "array",
+            "title": "Career Teams"
+          }
+        },
+        "type": "object",
+        "required": [
+          "info",
+          "wins",
+          "championships",
+          "career_teams"
+        ],
+        "title": "DriverStatsResponse"
+      },
+      "F1AuthStatusResponse": {
+        "properties": {
+          "valid_until": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid Until"
+          },
+          "needs_refresh": {
+            "type": "boolean",
+            "title": "Needs Refresh"
+          }
+        },
+        "type": "object",
+        "required": [
+          "valid_until",
+          "needs_refresh"
+        ],
+        "title": "F1AuthStatusResponse"
+      },
+      "FPResult": {
+        "properties": {
+          "position": {
+            "type": "string",
+            "title": "Position"
+          },
+          "driver_number": {
+            "type": "integer",
+            "title": "Driver Number"
+          },
+          "family_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Family Name"
+          },
+          "given_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Given Name"
+          },
+          "team_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Team Name"
+          },
+          "time": {
+            "type": "string",
+            "title": "Time"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "position",
+          "driver_number",
+          "family_name",
+          "given_name",
+          "team_name",
+          "time"
+        ],
+        "title": "FPResult"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "IdleDataResponse": {
+        "properties": {
+          "driver_standings": {
+            "items": {
+              "$ref": "#/components/schemas/DriverStanding"
+            },
+            "type": "array",
+            "title": "Driver Standings"
+          },
+          "constructor_standings": {
+            "items": {
+              "$ref": "#/components/schemas/ConstructorStanding"
+            },
+            "type": "array",
+            "title": "Constructor Standings"
+          },
+          "news": {
+            "items": {
+              "$ref": "#/components/schemas/NewsArticle"
+            },
+            "type": "array",
+            "title": "News"
+          },
+          "schedule": {
+            "items": {
+              "$ref": "#/components/schemas/ScheduledRace"
+            },
+            "type": "array",
+            "title": "Schedule"
+          },
+          "next_race": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RaceSummary"
+              },
+              {
+                "additionalProperties": true,
+                "type": "object"
+              }
+            ],
+            "title": "Next Race"
+          }
+        },
+        "type": "object",
+        "required": [
+          "driver_standings",
+          "constructor_standings",
+          "news",
+          "schedule",
+          "next_race"
+        ],
+        "title": "IdleDataResponse"
+      },
+      "LocationRecord": {
+        "properties": {
+          "locality": {
+            "type": "string",
+            "title": "Locality"
+          },
+          "country": {
+            "type": "string",
+            "title": "Country"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "locality",
+          "country"
+        ],
+        "title": "LocationRecord"
+      },
+      "MilestoneErrorResponse": {
+        "properties": {
+          "error": {
+            "type": "string",
+            "title": "Error"
+          }
+        },
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "title": "MilestoneErrorResponse"
+      },
+      "MilestoneRecord": {
+        "properties": {
+          "stat": {
+            "type": "string",
+            "title": "Stat"
+          },
+          "value": {
+            "type": "string",
+            "title": "Value"
+          },
+          "target": {
+            "type": "string",
+            "title": "Target"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "stat",
+          "value",
+          "target"
+        ],
+        "title": "MilestoneRecord"
+      },
+      "MilestonesResponse": {
+        "properties": {
+          "circuit_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Circuit Name"
+          },
+          "milestones": {
+            "items": {
+              "$ref": "#/components/schemas/MilestoneRecord"
+            },
+            "type": "array",
+            "title": "Milestones"
+          }
+        },
+        "type": "object",
+        "required": [
+          "circuit_name",
+          "milestones"
+        ],
+        "title": "MilestonesResponse"
+      },
+      "NewsArticle": {
+        "properties": {
+          "headline": {
+            "type": "string",
+            "title": "Headline"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "images": {
+            "items": {
+              "$ref": "#/components/schemas/NewsImage"
+            },
+            "type": "array",
+            "title": "Images",
+            "default": []
+          },
+          "links": {
+            "$ref": "#/components/schemas/NewsLinks"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "headline",
+          "description",
+          "links"
+        ],
+        "title": "NewsArticle"
+      },
+      "NewsImage": {
+        "properties": {
+          "url": {
+            "type": "string",
+            "title": "Url"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "url"
+        ],
+        "title": "NewsImage"
+      },
+      "NewsLinks": {
+        "properties": {
+          "web": {
+            "$ref": "#/components/schemas/NewsWebLink"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "web"
+        ],
+        "title": "NewsLinks"
+      },
+      "NewsWebLink": {
+        "properties": {
+          "href": {
+            "type": "string",
+            "title": "Href"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "href"
+        ],
+        "title": "NewsWebLink"
+      },
+      "QualiResult": {
+        "properties": {
+          "position": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position"
+          },
+          "driver_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Driver Id"
+          },
+          "family_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Family Name"
+          },
+          "given_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Given Name"
+          },
+          "team": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Team"
+          },
+          "time": {
+            "type": "string",
+            "title": "Time"
+          },
+          "q1": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Q1"
+          },
+          "q2": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Q2"
+          },
+          "q3": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Q3"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "position",
+          "driver_id",
+          "family_name",
+          "given_name",
+          "team",
+          "time",
+          "q1",
+          "q2",
+          "q3"
+        ],
+        "title": "QualiResult"
+      },
+      "RaceResult": {
+        "properties": {
+          "position": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position"
+          },
+          "driver_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Driver Id"
+          },
+          "family_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Family Name"
+          },
+          "given_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Given Name"
+          },
+          "team": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Team"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "is_finished": {
+            "type": "boolean",
+            "title": "Is Finished"
+          },
+          "time": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Time"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "position",
+          "driver_id",
+          "family_name",
+          "given_name",
+          "team",
+          "status",
+          "is_finished",
+          "time"
+        ],
+        "title": "RaceResult"
+      },
+      "RaceSummary": {
+        "properties": {
+          "round": {
+            "type": "string",
+            "title": "Round"
+          },
+          "raceName": {
+            "type": "string",
+            "title": "Racename"
+          },
+          "date": {
+            "type": "string",
+            "title": "Date"
+          },
+          "Circuit": {
+            "$ref": "#/components/schemas/CircuitRecord"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "round",
+          "raceName",
+          "date",
+          "Circuit"
+        ],
+        "title": "RaceSummary"
+      },
+      "RaceWeekendResponse": {
+        "properties": {
+          "results": {
+            "items": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/RaceResult"
+                },
+                {
+                  "$ref": "#/components/schemas/SprintResult"
+                },
+                {
+                  "$ref": "#/components/schemas/QualiResult"
+                },
+                {
+                  "$ref": "#/components/schemas/FPResult"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Results"
+          },
+          "available": {
+            "type": "boolean",
+            "title": "Available"
+          }
+        },
+        "type": "object",
+        "required": [
+          "results",
+          "available"
+        ],
+        "title": "RaceWeekendResponse"
+      },
+      "RefreshStartResponse": {
+        "properties": {
+          "url": {
+            "type": "string",
+            "title": "Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "url"
+        ],
+        "title": "RefreshStartResponse"
+      },
+      "ScheduledRace": {
+        "properties": {
+          "round": {
+            "type": "string",
+            "title": "Round"
+          },
+          "raceName": {
+            "type": "string",
+            "title": "Racename"
+          },
+          "date": {
+            "type": "string",
+            "title": "Date"
+          },
+          "Circuit": {
+            "$ref": "#/components/schemas/CircuitRecord"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "round",
+          "raceName",
+          "date",
+          "Circuit"
+        ],
+        "title": "ScheduledRace"
+      },
+      "SprintResult": {
+        "properties": {
+          "position": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position"
+          },
+          "driver_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Driver Id"
+          },
+          "family_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Family Name"
+          },
+          "given_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Given Name"
+          },
+          "team": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Team"
+          },
+          "is_finished": {
+            "type": "boolean",
+            "title": "Is Finished"
+          },
+          "time": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Time"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "position",
+          "driver_id",
+          "family_name",
+          "given_name",
+          "team",
+          "is_finished",
+          "time"
+        ],
+        "title": "SprintResult"
+      },
+      "StatusResponse": {
+        "properties": {
+          "is_live": {
+            "type": "boolean",
+            "title": "Is Live"
+          }
+        },
+        "type": "object",
+        "required": [
+          "is_live"
+        ],
+        "title": "StatusResponse"
+      },
+      "UpgradeRecord": {
+        "properties": {
+          "team": {
+            "type": "string",
+            "title": "Team"
+          },
+          "item": {
+            "type": "string",
+            "title": "Item"
+          },
+          "impact": {
+            "type": "string",
+            "title": "Impact"
+          }
+        },
+        "type": "object",
+        "required": [
+          "team",
+          "item",
+          "impact"
+        ],
+        "title": "UpgradeRecord"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

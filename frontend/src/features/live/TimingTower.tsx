@@ -13,7 +13,7 @@ function PositionChange({ change }: { change: number | undefined }) {
   const Icon = gained ? ArrowUp : ArrowDown;
   return (
     <span
-      className={`flex items-center gap-0.5 text-[10px] font-black tabular-nums flex-shrink-0 ${
+      className={`flex items-center gap-0.5 text-[10px] font-black tabular-nums shrink-0 ${
         gained ? "text-emerald-400" : "text-mkbhd-red"
       }`}
     >
@@ -49,7 +49,7 @@ function TyreBadge({ compound, age }: { compound: string | null; age: number | n
   return (
     <div className="flex items-center gap-2">
       <div
-        className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-black flex-shrink-0"
+        className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-black shrink-0"
         style={{ border: `2px solid ${color}`, color }}
         title={compound ? `${compound} · ${age ?? 0} laps` : "Compound unknown"}
       >
@@ -84,7 +84,7 @@ function comparePosition(
 // booleans only (handoff §7 decision 4) — the per-segment Status codes are
 // an unverified guess and deliberately not used for the primary coloring.
 function sectorClass(sector: SectorTime | undefined): string {
-  if (!sector || sector.Value === undefined) return "bg-white/[0.03] text-mkbhd-gray/50";
+  if (!sector || sector.Value === undefined) return "bg-white/3 text-mkbhd-gray/50";
   if (sector.OverallFastest) return "bg-[#b45cff] text-white";
   if (sector.PersonalFastest) return "bg-emerald-500 text-black";
   return "bg-white/10 text-white";
@@ -125,14 +125,14 @@ export function TimingTower({
   const rows = Object.entries(timing).sort((a, b) => comparePosition(a, b, drivers));
 
   return (
-    <div className="mkbhd-card p-0 overflow-hidden bg-white/[0.01]">
+    <div className="mkbhd-card p-0 overflow-hidden bg-white/1">
       <div className="px-8 py-6 bg-mkbhd-red flex justify-between items-center">
         <span className="font-black uppercase italic tracking-tighter text-lg">Running Order</span>
         <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/70">{rows.length} Cars</span>
       </div>
 
       <div className="overflow-x-auto custom-scrollbar">
-        <div className="min-w-[40rem]">
+        <div className="min-w-160">
           <div className={`${ROW_GRID} px-6 py-3 border-b border-white/5 text-[9px] font-black uppercase tracking-[0.2em] text-mkbhd-gray`}>
             <span className="text-right">Pos</span>
             <span>Driver</span>
@@ -165,38 +165,38 @@ export function TimingTower({
                   transition={{ type: "spring", stiffness: 350, damping: 32 }}
                   onClick={() => onSelectDriver(racingNumber)}
                   className={`${ROW_GRID} px-4 py-3 rounded-2xl cursor-pointer transition-colors ${
-                    isSelected ? "bg-mkbhd-red/15" : "hover:bg-white/[0.03]"
+                    isSelected ? "bg-mkbhd-red/15" : "hover:bg-white/3"
                   } ${line.retired ? "opacity-40" : ""}`}
                 >
                   <span className="text-lg font-black text-white/30 text-right tabular-nums">{line.position ?? "-"}</span>
 
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-1.5 h-8 rounded-full flex-shrink-0" style={{ backgroundColor: teamColour }} />
+                    <div className="w-1.5 h-8 rounded-full shrink-0" style={{ backgroundColor: teamColour }} />
                     <div className="min-w-0">
                       <div className="font-black uppercase italic leading-none truncate flex items-center gap-2">
                         {driver?.tla ?? `#${racingNumber}`}
                         {isFastestLap && (
-                          <span title="Fastest lap" className="text-[#b45cff] flex-shrink-0">
+                          <span title="Fastest lap" className="text-[#b45cff] shrink-0">
                             <Timer size={11} strokeWidth={3} />
                           </span>
                         )}
                         {flags?.investigating && (
-                          <span title={flags.pendingPenalty ? "Under investigation + unserved penalty" : "Under investigation"} className="text-amber-400 flex-shrink-0">
+                          <span title={flags.pendingPenalty ? "Under investigation + unserved penalty" : "Under investigation"} className="text-amber-400 shrink-0">
                             <TriangleAlert size={11} strokeWidth={2.5} />
                           </span>
                         )}
                         {flags?.pendingPenalty && !flags?.investigating && (
-                          <span title={`Unserved penalty (${flags.pendingPenalty})`} className="text-mkbhd-red flex-shrink-0">
+                          <span title={`Unserved penalty (${flags.pendingPenalty})`} className="text-mkbhd-red shrink-0">
                             <TriangleAlert size={11} strokeWidth={2.5} />
                           </span>
                         )}
                         {line.in_pit && (
-                          <span className="text-[8px] font-black text-mkbhd-red border border-mkbhd-red/50 rounded px-1 py-0.5 not-italic tracking-widest">
+                          <span className="text-[8px] font-black text-mkbhd-red border border-mkbhd-red/50 rounded-sm px-1 py-0.5 not-italic tracking-widest">
                             PIT
                           </span>
                         )}
                         {line.retired && (
-                          <span className="text-[8px] font-black text-mkbhd-gray border border-white/20 rounded px-1 py-0.5 not-italic tracking-widest">
+                          <span className="text-[8px] font-black text-mkbhd-gray border border-white/20 rounded-sm px-1 py-0.5 not-italic tracking-widest">
                             OUT
                           </span>
                         )}

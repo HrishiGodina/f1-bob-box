@@ -1,10 +1,10 @@
 import { useMemo, useRef } from "react";
 import { motion } from "framer-motion";
 import type { DriverInfo, PositionEntry, WeatherInfo } from "./types";
-import { resolveCircuitKey, geoJsonToSvgPath, geoJsonToScreenPoints, fallbackTrackPath } from "../circuits/track";
-import { CIRCUIT_GEOJSON } from "../circuits";
-import START_FINISH from "../circuits/start_finish.json";
-import FEED_CALIBRATION from "../circuits/feed_calibration.json";
+import { resolveCircuitKey, geoJsonToSvgPath, geoJsonToScreenPoints, fallbackTrackPath } from "../../circuits/track";
+import { CIRCUIT_GEOJSON } from "../../circuits";
+import START_FINISH from "../../circuits/start_finish.json";
+import FEED_CALIBRATION from "../../circuits/feed_calibration.json";
 
 interface Bounds {
   minX: number;
@@ -148,7 +148,7 @@ export function TrackMap({ drivers, positions, selectedDriver, sessionName, weat
       <div className="flex items-center gap-3 mb-10">
         <h2 className="text-xs font-black uppercase tracking-[0.3em]">Grid Telemetry</h2>
       </div>
-      <div className="relative w-full aspect-square border border-white/5 rounded-[2rem] bg-mkbhd-studio/50 backdrop-blur-sm overflow-hidden">
+      <div className="relative w-full aspect-square border border-white/5 rounded-4xl bg-mkbhd-studio/50 backdrop-blur-xs overflow-hidden">
         <svg className="w-full h-full" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid meet">
           {trackPath && (
             <path d={trackPath} stroke="white" strokeOpacity={0.12} strokeWidth={2} fill="none" />

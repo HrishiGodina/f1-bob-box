@@ -7,13 +7,14 @@ import {
   computeTopSpeed,
   computeMostPositionsGained,
   computeDriverPenaltyStates,
+  trackFlag,
 } from "./liveState";
 import type { TopSpeed } from "./liveState";
 import { shouldShowNoSessionPanel } from "./liveView";
 import { computeBattles } from "./battles";
 import { useQualifyingGrid } from "./useQualifyingGrid";
 import { startF1AuthRefresh, useF1AuthStatus } from "./useF1AuthStatus";
-import { SessionBests, trackFlag } from "./SessionBests";
+import { SessionBests } from "./SessionBests";
 import { SectorBests } from "./SectorBests";
 import { TimingTower } from "./TimingTower";
 import { TrackMap } from "./TrackMap";
@@ -122,7 +123,7 @@ export function LiveDashboard({ demoActive, onToggleDemo }: LiveDashboardProps) 
             {sessionName}
           </h1>
           <div
-            className="px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-[0.25em] flex items-center gap-2 flex-shrink-0"
+            className="px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-[0.25em] flex items-center gap-2 shrink-0"
             style={{ backgroundColor: `${flag.color}1a`, border: `1px solid ${flag.color}66`, color: flag.color }}
           >
             <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: flag.color }} />
@@ -151,7 +152,7 @@ export function LiveDashboard({ demoActive, onToggleDemo }: LiveDashboardProps) 
       </header>
 
       {showNoSessionPanel ? (
-        <div className="flex flex-col items-center justify-center gap-8 py-32 border border-white/10 rounded-mkbhd bg-white/[0.02] text-center">
+        <div className="flex flex-col items-center justify-center gap-8 py-32 border border-white/10 rounded-mkbhd bg-white/2 text-center">
           <div className="text-3xl font-black italic uppercase tracking-tight">No Live Session</div>
           <p className="text-mkbhd-gray max-w-md">
             The live feed has nothing to show right now — no session is running. Start a simulated
@@ -177,7 +178,7 @@ export function LiveDashboard({ demoActive, onToggleDemo }: LiveDashboardProps) 
               <button
                 type="button"
                 onClick={renewF1Token}
-                className="px-4 py-2 rounded-full bg-mkbhd-red text-white text-[10px] font-black uppercase tracking-widest hover:opacity-90 transition-opacity cursor-pointer flex-shrink-0"
+                className="px-4 py-2 rounded-full bg-mkbhd-red text-white text-[10px] font-black uppercase tracking-widest hover:opacity-90 transition-opacity cursor-pointer shrink-0"
               >
                 Renew token
               </button>

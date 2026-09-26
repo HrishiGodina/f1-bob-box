@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-const API_BASE = (import.meta as any).env?.VITE_API_BASE ?? "http://localhost:8000/api";
+const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8000/api";
 
 export interface F1AuthStatus {
   validUntil: number | null;

@@ -6,6 +6,7 @@ import type {
   SectorTime,
   TelemetryChannels,
   TimingLine,
+  TrackStatusInfo,
 } from "./types";
 
 // Mirrors LiveSessionState.snapshot()'s empty-state shape exactly (backend/
@@ -286,4 +287,23 @@ export function computeBestSectors(
   }
 
   return results;
+}
+
+// Map F1's TrackStatus into a broadcast flag label + colour. `Status` is a
+// numeric code (as a string); we key off it, falling back to the raw
+// `Message` text when a code we don't recognise arrives so the panel never
+// goes blank on an unmapped state.
+export function trackFlag(track: TrackStatusInfo): { label: string; color: string } {
+  const status = track.Status ? String(track.Status) : "";
+  const map: Record<string, { label: string; color: string }> = {
+    "1": { label: "Track Clear", color: "#43b02a" },
+    "2": { label: "Yellow Flag", color: "#ffd12e" },
+    "4": { label: "Safety Car", color: "#ffd12e" },
+    "5": { label: "Red Flag", color: "#da291c" },
+    "6": { label: "Virtual SC", color: "#ffd12e" },
+    "7": { label: "VSC Ending", color: "#ffd12e" },
+  };
+  if (map[status]) return map[status];
+  if (track.Message) return { label: track.Message, color: "#a3a3a3" };
+  return { label: "Standby", color: "#a3a3a3" };
 }

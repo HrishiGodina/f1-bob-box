@@ -15,8 +15,8 @@ export function SectorBests({ sectors }: SectorBestsProps) {
       {sectors.map((best, index) => {
         const accent = best?.teamColour ?? ACCENTS[index];
         return (
-          <div key={index} className="mkbhd-card p-3 flex items-stretch gap-2 bg-white/[0.01]">
-            <div className="w-1 rounded-full flex-shrink-0" style={{ backgroundColor: accent }} />
+          <div key={index} className="mkbhd-card p-3 flex items-stretch gap-2 bg-white/1">
+            <div className="w-1 rounded-full shrink-0" style={{ backgroundColor: accent }} />
             <div className="min-w-0">
               <div className="text-[9px] font-black uppercase tracking-[0.25em] text-mkbhd-gray">
                 Best Sector {index + 1}

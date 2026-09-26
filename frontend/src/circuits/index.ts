@@ -25,7 +25,18 @@ import yas_marina from './yas_marina.json';
 import madring from './madring.json';
 import sepang from './sepang.json';
 
-export const CIRCUIT_GEOJSON: Record<string, any> = {
+export interface CircuitGeoJson {
+  features?:
+    | {
+        geometry?: {
+          type?: string;
+          coordinates?: number[][] | number[][][];
+        };
+      }[]
+    | null;
+}
+
+export const CIRCUIT_GEOJSON: Record<string, CircuitGeoJson> = {
   bahrain,
   jeddah,
   albert_park,
