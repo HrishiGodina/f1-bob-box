@@ -1,4 +1,12 @@
-import type { DriverInfo, LivePatch, LiveSnapshot, SectorTime, TelemetryChannels, TimingLine } from "./types";
+import type {
+  DriverInfo,
+  LivePatch,
+  LiveSnapshot,
+  RaceControlMessage,
+  SectorTime,
+  TelemetryChannels,
+  TimingLine,
+} from "./types";
 
 // Mirrors LiveSessionState.snapshot()'s empty-state shape exactly (backend/
 // livetiming/state.py) — verified against the actual empty-snapshot test in
@@ -193,6 +201,47 @@ export interface SectorBest {
   tla: string;
   time: string;
   teamColour: string | null;
+}
+
+export interface DriverPenaltyState {
+  investigating: boolean;
+  pendingPenalty: string | null;
+}
+
+const CAR_NUMBER_RE = /CAR (\d+)/;
+
+export function computeDriverPenaltyStates(
+  race_control: RaceControlMessage[]
+): Record<string, DriverPenaltyState> {
+  const states: Record<string, DriverPenaltyState> = {};
+  const stateFor = (num: string): DriverPenaltyState =>
+    states[num] ?? (states[num] = { investigating: false, pendingPenalty: null });
+  for (const msg of race_control) {
+    const text = String(msg?.Message ?? "").toUpperCase();
+    const m = CAR_NUMBER_RE.exec(text);
+    if (!m) continue;
+    const s = stateFor(m[1]);
+    if (/INVESTIGATION CLOSED|NO FURTHER ACTION/.test(text)) {
+      s.investigating = false;
+    } else if (/UNDER INVESTIGATION|WILL BE INVESTIGATED/.test(text) && !/AFTER THE RACE/.test(text)) {
+      s.investigating = true;
+    }
+    if (/PENALTY SERVED|SERVES \d+ SECOND/.test(text)) {
+      s.pendingPenalty = null;
+      continue;
+    }
+    const seconds = /TIME PENALTY\s*-\s*(\d+)\s*SECONDS?/.exec(text) ?? /(\d+)\s*SECOND TIME PENALTY/.exec(text);
+    if (seconds) {
+      s.pendingPenalty = `${seconds[1]}s`;
+    } else if (/STOP (AND|-)GO PENALTY/.test(text)) {
+      s.pendingPenalty = "stop-go";
+    } else if (/DRIVE-?THROUGH PENALTY/.test(text)) {
+      s.pendingPenalty = "drive-through";
+    } else if (/DROP \d+ GRID|GRID PENALTY/.test(text)) {
+      s.pendingPenalty = "grid";
+    }
+  }
+  return states;
 }
 
 // Broadcast convention: each sector index carries its own OverallFastest

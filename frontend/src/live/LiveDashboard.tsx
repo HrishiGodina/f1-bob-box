@@ -1,7 +1,13 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { useLiveSnapshot } from "./useLiveSnapshot";
-import { computeSessionBests, computeBestSectors, computeTopSpeed, computeMostPositionsGained } from "./liveState";
+import {
+  computeSessionBests,
+  computeBestSectors,
+  computeTopSpeed,
+  computeMostPositionsGained,
+  computeDriverPenaltyStates,
+} from "./liveState";
 import { shouldShowNoSessionPanel } from "./liveView";
 import { computeBattles } from "./battles";
 import { useQualifyingGrid } from "./useQualifyingGrid";
@@ -22,6 +28,14 @@ export interface LiveDashboardProps {
 export function LiveDashboard({ demoActive, onToggleDemo }: LiveDashboardProps) {
   const { snapshot, hasSnapshot } = useLiveSnapshot(demoActive);
   const [selectedDriver, setSelectedDriver] = useState<string | null>(null);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 120);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   const sessionName = snapshot.session_info.Meeting?.Name ?? "ON AIR";
   const isReconnecting = snapshot.connection_status === "reconnecting";
@@ -49,6 +63,11 @@ export function LiveDashboard({ demoActive, onToggleDemo }: LiveDashboardProps) 
   );
 
   const flag = trackFlag(snapshot.track_status);
+
+  const driverFlags = useMemo(
+    () => computeDriverPenaltyStates(snapshot.race_control),
+    [snapshot.race_control]
+  );
 
   // Position-change baseline: the actual starting grid (qualifying
   // classification) when resolvable, falling back to the backend's
@@ -80,13 +99,23 @@ export function LiveDashboard({ demoActive, onToggleDemo }: LiveDashboardProps) 
 
   return (
     <div className="space-y-6" id="live-dashboard">
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-4 border-b border-white/5">
+      <header
+        className={`sticky top-0 z-30 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-4 border-b border-white/5 transition-all duration-300 ${
+          scrolled ? "bg-mkbhd-black/85 backdrop-blur-xl px-4 py-2" : ""
+        }`}
+      >
         <motion.div
           initial={{ x: -20, opacity: 0 }}
           animate={{ opacity: 1, x: 0 }}
-          className="flex items-center gap-4"
+          className={`flex items-center transition-all duration-300 ${scrolled ? "gap-3" : "gap-4"}`}
         >
-          <h1 className="text-2xl md:text-4xl tracking-tight leading-none">{sessionName}</h1>
+          <h1
+            className={`tracking-tight leading-none transition-all duration-300 ${
+              scrolled ? "text-sm md:text-lg" : "text-2xl md:text-4xl"
+            }`}
+          >
+            {sessionName}
+          </h1>
           <div
             className="px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-[0.25em] flex items-center gap-2 flex-shrink-0"
             style={{ backgroundColor: `${flag.color}1a`, border: `1px solid ${flag.color}66`, color: flag.color }}
@@ -166,6 +195,7 @@ export function LiveDashboard({ demoActive, onToggleDemo }: LiveDashboardProps) 
                 fastestLapDriver={bests.fastestLap?.racingNumber ?? null}
                 fastestPaceDriver={topSpeed?.racingNumber ?? null}
                 positionChanges={positionChanges}
+                driverFlags={driverFlags}
               />
             </div>
 

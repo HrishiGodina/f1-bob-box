@@ -1,6 +1,7 @@
-import { ArrowDown, ArrowUp } from "lucide-react";
+import { ArrowDown, ArrowUp, Timer, TriangleAlert } from "lucide-react";
 import { motion } from "framer-motion";
 import type { DriverInfo, SectorTime, TimingLine } from "./types";
+import type { DriverPenaltyState } from "./liveState";
 
 // Places gained (green, up) or lost (red, down) since the driver's starting
 // grid position — see LiveDashboard's positionChanges (backed by the
@@ -106,6 +107,9 @@ export interface TimingTowerProps {
   // Places gained (positive) or lost (negative) since first observed this
   // session, keyed by racing number — see LiveDashboard's positionChanges.
   positionChanges: Record<string, number>;
+  // Steward states derived from race-control messages: live/post-race
+  // investigations and unserved penalties keyed by racing number.
+  driverFlags: Record<string, DriverPenaltyState>;
 }
 
 export function TimingTower({
@@ -116,6 +120,7 @@ export function TimingTower({
   fastestLapDriver,
   fastestPaceDriver,
   positionChanges,
+  driverFlags,
 }: TimingTowerProps) {
   const rows = Object.entries(timing).sort((a, b) => comparePosition(a, b, drivers));
 
@@ -152,6 +157,7 @@ export function TimingTower({
               const teamColour = driver?.team_colour ? driver.team_colour : "#444444";
               const isFastestLap = fastestLapDriver === racingNumber;
               const isFastestPace = fastestPaceDriver === racingNumber;
+              const flags: DriverPenaltyState | undefined = driverFlags[racingNumber];
               return (
                 <motion.div
                   key={racingNumber}
@@ -169,6 +175,21 @@ export function TimingTower({
                     <div className="min-w-0">
                       <div className="font-black uppercase italic leading-none truncate flex items-center gap-2">
                         {driver?.tla ?? `#${racingNumber}`}
+                        {isFastestLap && (
+                          <span title="Fastest lap" className="text-[#b45cff] flex-shrink-0">
+                            <Timer size={11} strokeWidth={3} />
+                          </span>
+                        )}
+                        {flags?.investigating && (
+                          <span title={flags.pendingPenalty ? "Under investigation + unserved penalty" : "Under investigation"} className="text-amber-400 flex-shrink-0">
+                            <TriangleAlert size={11} strokeWidth={2.5} />
+                          </span>
+                        )}
+                        {flags?.pendingPenalty && !flags?.investigating && (
+                          <span title={`Unserved penalty (${flags.pendingPenalty})`} className="text-mkbhd-red flex-shrink-0">
+                            <TriangleAlert size={11} strokeWidth={2.5} />
+                          </span>
+                        )}
                         {line.in_pit && (
                           <span className="text-[8px] font-black text-mkbhd-red border border-mkbhd-red/50 rounded px-1 py-0.5 not-italic tracking-widest">
                             PIT
