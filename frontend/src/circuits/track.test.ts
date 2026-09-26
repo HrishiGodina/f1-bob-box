@@ -252,12 +252,11 @@ describe('track utilities', () => {
       expect(resolveCircuitKey('FORMULA 1 BELGIAN GRAND PRIX 2026')).toBe('spa');
       expect(resolveCircuitKey('FORMULA 1 BRITISH GRAND PRIX 2026')).toBe('silverstone');
       expect(resolveCircuitKey('FORMULA 1 JAPANESE GRAND PRIX 2026')).toBe('suzuka');
-      expect(resolveCircuitKey('FORMULA 1 AZERBAIJAN GRAND PRIX 2026')).toBeNull();
+      expect(resolveCircuitKey('FORMULA 1 AZERBAIJAN GRAND PRIX 2026')).toBe('baku');
     });
 
-    it('does not alias Spain to any circuit, since Catalunya and Madring are both plausible', () => {
-      expect(resolveCircuitKey('FORMULA 1 SPANISH GRAND PRIX 2026')).toBeNull();
-      expect(resolveCircuitKey('FORMULA 1 ARAMCO GRAN PREMIO DE ESPANA 2026')).toBeNull();
+    it('maps the Spanish GP to its current host circuit (Madring, 2026+)', () => {
+      expect(resolveCircuitKey('FORMULA 1 SPANISH GRAND PRIX 2026')).toBe('madring');
     });
   });
 });
