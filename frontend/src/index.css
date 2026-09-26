@@ -1,6 +1,60 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+
+@theme {
+  --color-mkbhd-black: #0a0a0a;
+  --color-mkbhd-studio: #141414;
+  --color-mkbhd-red: #cc0000;
+  --color-mkbhd-gray: #a3a3a3;
+  --color-mkbhd-border: rgba(255, 255, 255, 0.1);
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --radius-mkbhd: 1.25rem;
+}
+
+@utility scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
+
+@utility mkbhd-card {
+  @apply bg-mkbhd-studio border border-white/10 rounded-mkbhd transition-all duration-300;
+}
+
+@utility mkbhd-btn-primary {
+  @apply bg-mkbhd-red text-white px-6 py-3 font-bold rounded-lg transition-all hover:brightness-110 active:scale-95;
+}
+
+@utility mkbhd-btn-secondary {
+  @apply bg-white/5 border border-white/10 text-white px-6 py-3 font-bold rounded-lg transition-all hover:bg-white/10 active:scale-95;
+}
+
+@utility text-secondary {
+  @apply text-mkbhd-gray;
+}
+
+@utility studio-header {
+  @apply bg-mkbhd-black/90 backdrop-blur-xl border-b border-white/5 sticky top-0 z-150;
+}
 
 @layer base {
   :root {
@@ -8,28 +62,6 @@
   }
   body {
     @apply bg-mkbhd-black text-white font-sans overflow-x-hidden selection:bg-mkbhd-red selection:text-white;
-  }
-}
-
-@layer components {
-  .mkbhd-card {
-    @apply bg-mkbhd-studio border border-white/10 rounded-mkbhd transition-all duration-300;
-  }
-  
-  .mkbhd-btn-primary {
-    @apply bg-mkbhd-red text-white px-6 py-3 font-bold rounded-lg transition-all hover:brightness-110 active:scale-95;
-  }
-
-  .mkbhd-btn-secondary {
-    @apply bg-white/5 border border-white/10 text-white px-6 py-3 font-bold rounded-lg transition-all hover:bg-white/10 active:scale-95;
-  }
-
-  .text-secondary {
-    @apply text-mkbhd-gray;
-  }
-
-  .studio-header {
-    @apply bg-mkbhd-black/90 backdrop-blur-xl border-b border-white/5 sticky top-0 z-[150];
   }
 }
 

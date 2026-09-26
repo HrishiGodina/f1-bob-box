@@ -19,4 +19,10 @@ export default defineConfig([
       globals: globals.browser,
     },
   },
+  {
+    files: ['src/features/live/**/*.{ts,tsx}'],
+    rules: {
+      'react-hooks/refs': 'warn',
+    },
+  },
 ])
