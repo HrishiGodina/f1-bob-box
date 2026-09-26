@@ -1,6 +1,6 @@
-# F1 Strategy Dashboard
+# F1 Strategy Center
 
-A personal Formula 1 strategy dashboard — live telemetry during race sessions, standings, circuit analysis, and race weekend results when idle.
+A personal Formula 1 strategy dashboard — a real-time live-timing cockpit during sessions, and a full statistics/analysis workspace when idle.
 
 ![Tech Stack](https://img.shields.io/badge/React-Vite-blue) ![FastAPI](https://img.shields.io/badge/Backend-FastAPI-green) ![Tailwind](https://img.shields.io/badge/Style-Tailwind-teal)
 
@@ -9,75 +9,63 @@ A personal Formula 1 strategy dashboard — live telemetry during race sessions,
 ## Features
 
 ### Live Session
-- Live timing tower — position, gap/interval, sector times with personal/session-best coloring, tyre compound + stint, pit stop count
-- Live track map — every car's position, color-coded, highlights the selected driver
-- Race control message feed — flags, safety car/VSC, investigations
-- Per-driver telemetry gauges — speed, RPM, gear, throttle/brake for whichever driver is selected
-- Own direct client for F1's live timing feed (`livetiming.formula1.com`, SignalR) — no credentials, no third-party API
+- **Timing tower** — running order with gap/interval, sector times (personal/session-best coloring), tyre compound + stint age, pit stops, places gained/lost vs the starting grid
+- **Grid telemetry** — every car plotted on the real circuit layout (GeoJSON for 26 circuits), with the start/finish line drawn on the track
+- **Battle watch** — live two-car battles with gap, speed and last-lap comparison; corner alerts when a battle is closing
+- **Steward states** — purple timer for the fastest-lap holder, yellow alert for drivers under investigation, red alert for unserved penalties (derived from live race-control messages)
+- **Session bests** — fastest lap, session top speed, most positions gained, best sectors
+- **Race-control ticker** — flags, safety car/VSC, investigations, penalties
+- **Session recording** — every topic update is written to disk (pre-decode) so any session can be replayed later through the real pipeline
 
 ### Idle Dashboard
-- **World Championship** — driver and constructor standings with career profile modal
-- **This Season** — completed rounds grid, click any card to open circuit analysis
-- **Upcoming Races** — all remaining rounds in horizontal scroll, click to open circuit layout
-- **Global Dispatch** — F1 news feed (ESPN) in horizontal scroll
-- **THE ARCHIVE** — full season timeline modal
+- World championship standings with career profiles
+- Season calendar with circuit analysis (elevation, lap record, historical results back to the circuit's redesign year)
+- Race-weekend results for any year: race/quali/sprint via Jolpica-F1, practice sessions via OpenF1
+- F1 news feed
 
-### Circuit Analysis Modal
-Two tabs per circuit:
-
-**CIRCUIT** — stats (corners, laps, lap record), elevation profile, team tactical upgrades, historical race results with year picker (back to circuit redesign year)
-
-**RACE WEEKEND** — per-session results for any year:
-- Race, Qualifying, Sprint → Jolpica-F1 API
-- FP1 / FP2 / FP3 → OpenF1 (2023+ only; tabs hidden for earlier years or when no data)
+### Demo Mode
+- One click replays a simulated race in the UI — or replay a **real recorded session** end-to-end (see [Recording & Replay](#recording--replay))
 
 ---
 
-## Stack
+## How the live feed works
 
-| Layer | Tech |
-|---|---|
-| Frontend | React 18, TypeScript, Vite 8 (Rolldown), Tailwind CSS, Framer Motion, Recharts |
-| Backend | Python 3.11+, FastAPI, httpx |
-| Data | OpenF1 (`api.openf1.org/v1`), Jolpica-F1 (`api.jolpi.ca/ergast/f1`), ESPN news API |
-| Circuit geometry | Real GeoJSON for 24 circuits (bacinger dataset) |
+The backend runs its own client for F1's official SignalR live-timing stream (`livetiming.formula1.com`): it negotiates the connection, subscribes to ~11 topics (timing, position, car data, race control, weather…), decodes the delta stream, and broadcasts a merged snapshot + patches to every connected browser over `/ws/live`.
+
+> **F1TV subscription note (2026):** the feed now serves `Position.z` (car coordinates) and `CarData.z` (telemetry) only to authenticated connections. Unauthenticated sessions still get timing, race control and weather. To enable driver tracking and telemetry you need an active F1TV Access/Pro/Premium subscription and a one-time browser sign-in:
+
+```bash
+cd backend
+python -m livetiming.f1auth            # opens the F1 login in your default browser
+python -m livetiming.f1auth --open     # same, auto-opens the URL
+```
+
+The resulting subscription token is stored in `backend/.f1auth.json` (gitignored) and lasts 4 days; re-run the command to refresh. `python -m livetiming.f1harvest refresh` re-opens the browser only when the token is actually near expiry.
 
 ---
 
 ## Getting Started
 
-### Prerequisites
-- Node 18+
-- Python 3.11+
-
-### Run
+**Prerequisites:** Node 18+, Python 3.9+
 
 ```bash
-# Clone
 git clone https://github.com/HrishiGodina/f1-bob-box.git
 cd f1-bob-box
-
-# Start everything (frontend + backend)
-./run-dashboard.sh
+./run-dashboard.sh        # starts backend (:8000) + frontend (:5173)
 ```
 
 Open [http://localhost:5173](http://localhost:5173).
 
-The script manages both processes. Frontend on `:5173`, backend API on `:8000`.
-
 ### Manual setup
 
-**Backend**
 ```bash
+# Backend
 cd backend
-python3 -m venv venv
-source venv/bin/activate
+python3 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
-uvicorn main:app --reload --port 8000
-```
+python main.py                     # or: uvicorn main:app --port 8000
 
-**Frontend**
-```bash
+# Frontend (second terminal)
 cd frontend
 npm install
 npm run dev
@@ -85,32 +73,93 @@ npm run dev
 
 ---
 
-## Project Structure
+## Recording & Replay
 
+While connected, every raw topic update is appended to `backend/recordings/<UTC-timestamp>.jsonl` (base64 `.z` payloads stored exactly as received).
+
+Replay any recording through the real decode → merge → broadcast pipeline:
+
+```bash
+cd backend
+LIVETIMING_REPLAY=recordings/<file>.jsonl python main.py
 ```
-f1-dashboard/
-├── backend/
-│   ├── main.py                  # FastAPI — all endpoints
-│   └── test_circuit_history.py  # pytest tests (requires respx)
-├── frontend/
-│   └── src/
-│       ├── App.tsx              # All components in one file (~1400 lines)
-│       └── circuits/            # GeoJSON for 24 circuits
-├── run-dashboard.sh             # Start/stop script
-└── docs/superpowers/            # Design specs and implementation plans
+
+The dashboard then behaves as if that session were live. Recordings are gitignored.
+
+---
+
+## Configuration
+
+| Variable | Where | Purpose |
+|---|---|---|
+| `VITE_API_BASE` | frontend | Backend base URL (default `http://localhost:8000/api`) |
+| `F1TV_SUBSCRIPTION_TOKEN` | backend | Overrides the stored F1TV token |
+| `LIVETIMING_REPLAY` | backend | Path to a recording to replay instead of connecting live |
+| `LIVETIMING_AUTOSTART` | backend | Set `0` to disable the feed client on startup |
+
+---
+
+## Testing
+
+```bash
+cd backend && venv/bin/python -m pytest -q     # backend: feed protocol, state, endpoints
+cd frontend && npx vitest run                  # frontend: logic and demo-timeline shape
+npx tsc -b tsconfig.app.json --force           # type check
 ```
 
 ---
 
-## API Endpoints
+## Deployment
+
+`backend/railway.toml` deploys the API to Railway (Nixpacks, uvicorn). The frontend builds to static files (`npm run build`) and can be served from any static host pointing `VITE_API_BASE` at the API.
+
+---
+
+## Project Structure
+
+```
+f1-bob-box/
+├── backend/
+│   ├── main.py                  # FastAPI: REST endpoints, /ws/live, lifespan wiring
+│   ├── livetiming/
+│   │   ├── client.py            # SignalR client: negotiate, subscribe, decode, record
+│   │   ├── state.py             # LiveSessionState: delta merge + derived projections
+│   │   ├── decode.py            # SignalR frame/record parsing, .z inflation
+│   │   ├── recorder.py          # JSONL recording + replay
+│   │   ├── f1auth.py            # F1TV subscription-token login flow
+│   │   └── hub.py               # WebSocket broadcaster
+│   └── recordings/              # session recordings (gitignored)
+├── frontend/
+│   └── src/
+│       ├── App.tsx              # idle dashboard, circuit analysis
+│       └── live/                # live cockpit: tower, track map, battles, demo
+│           └── demo/            # demo timeline (real-session replay data)
+├── circuits/                    # GeoJSON layouts + start/finish points (via frontend/src/circuits)
+└── run-dashboard.sh
+```
+
+---
+
+## API
 
 | Method | Path | Description |
 |---|---|---|
 | GET | `/api/status` | Live session check |
 | GET | `/api/idle-data` | Standings, schedule, next race, news |
-| GET | `/api/circuit/{id}` | Circuit info + historical results. `?season=N` |
-| GET | `/api/race-weekend/{id}` | Session results. `?year=N&session=race\|quali\|sprint\|fp1\|fp2\|fp3` |
+| GET | `/api/circuit/{id}` | Circuit info + historical results (`?season=N`) |
+| GET | `/api/race-weekend/{id}` | Session results (`?year=N&session=race\|quali\|sprint\|fp1\|fp2\|fp3`) |
 | GET | `/api/driver/{id}/stats` | Driver career stats |
 | GET | `/api/constructor/{id}/stats` | Constructor career stats |
-| WS | `/ws/live` | Live timing feed — full snapshot on connect, then incremental patches (see the live-timing spec under `docs/superpowers/specs/`) |
+| GET | `/api/f1auth/status` | F1TV token expiry / needs-refresh |
+| POST | `/api/f1auth/refresh/start` | Begin a token-renewal sign-in (returns the login URL) |
+| WS | `/ws/live` | Full snapshot on connect, then incremental patches |
 
+---
+
+## Disclaimer
+
+This project is a personal, non-commercial tool and is **not affiliated with, endorsed by, or connected to Formula 1, FIA, or any of their subsidiaries**. Timing data is consumed from Formula 1's publicly accessible live-timing service; historical data comes from community APIs (OpenF1, Jolpica-F1). F1, FORMULA 1 and related marks are trademarks of Formula One Licensing BV. Use responsibly and in accordance with the relevant terms of service.
+
+## License
+
+Not yet decided — a license (MIT/Apache-2.0) will be added before the public release.

@@ -10,7 +10,7 @@ export const CIRCUIT_ID_MAP: Record<string, string> = {
   monza: 'monza', baku: 'baku', marina_bay: 'marina_bay',
   americas: 'americas', rodriguez: 'rodriguez', interlagos: 'interlagos',
   las_vegas: 'las_vegas', vegas: 'las_vegas', losail: 'losail', yas_marina: 'yas_marina',
-  madring: 'madring',
+  madring: 'madring', sepang: 'sepang',
 };
 
 export const geoJsonToScreenPoints = (geojson: any, w = 440, h = 310, pad = 24, stretch = false): [number, number][] => {
@@ -108,7 +108,7 @@ export const fallbackTrackPath = (circuitId: string) => {
 // never matches. These aliases cover the country/GP-name keyword for each
 // circuit where that mapping is unambiguous on the current calendar.
 // Spain maps to madring (the 2026+ Spanish GP host); catalunya stays
-// reachable via its own slug only.
+// reachable via its own slug and the Barcelona GP name.
 const GP_NAME_ALIASES: Record<string, string[]> = {
   monza: ["italy", "italian", "italia"],
   jeddah: ["saudi arabia", "saudi"],
@@ -128,7 +128,9 @@ const GP_NAME_ALIASES: Record<string, string[]> = {
   interlagos: ["brazil", "brazilian", "sao paulo"],
   losail: ["qatar"],
   yas_marina: ["abu dhabi"],
-  madring: ["spanish", "spain"],
+  catalunya: ["barcelona"],
+  madring: ["spanish", "spain", "madrid"],
+  sepang: ["malaysia", "malaysian"],
   baku: ["azerbaijan"],
 };
 
@@ -150,7 +152,8 @@ const CIRCUIT_KEYWORDS = Object.keys(CIRCUIT_GEOJSON)
  */
 export function resolveCircuitKey(sessionName: string | null | undefined): string | null {
   if (!sessionName) return null;
-  const normalized = sessionName.toLowerCase();
+  // Fold accents so accented meeting names ("São Paulo Grand Prix") match ASCII keywords
+  const normalized = sessionName.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
   for (const { slug, pattern } of CIRCUIT_KEYWORDS) {
     if (pattern.test(normalized)) return slug;
   }

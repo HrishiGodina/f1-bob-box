@@ -259,6 +259,9 @@ CIRCUIT_REDESIGN_YEAR = {
     "losail": 2021,
     "yas_marina": 2009,
     "baku": 2016,
+    "madring": 2026,
+    "sepang": 1999,
+    "vegas": 2023,
 }
 
 DEFAULT_HISTORY_WINDOW = 10
@@ -289,6 +292,9 @@ CIRCUIT_OPENF1_SHORT_NAME = {
     "las_vegas": "Las Vegas",
     "losail": "Lusail",
     "yas_marina": "Abu Dhabi",
+    "madring": "Madring",
+    "sepang": "Sepang",
+    "vegas": "Las Vegas",
 }
 
 @app.get("/api/status")

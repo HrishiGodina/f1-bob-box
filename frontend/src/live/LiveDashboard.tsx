@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { useLiveSnapshot } from "./useLiveSnapshot";
 import {
@@ -8,6 +8,7 @@ import {
   computeMostPositionsGained,
   computeDriverPenaltyStates,
 } from "./liveState";
+import type { TopSpeed } from "./liveState";
 import { shouldShowNoSessionPanel } from "./liveView";
 import { computeBattles } from "./battles";
 import { useQualifyingGrid } from "./useQualifyingGrid";
@@ -52,10 +53,14 @@ export function LiveDashboard({ demoActive, onToggleDemo }: LiveDashboardProps) 
     [snapshot.timing, snapshot.drivers]
   );
 
-  const topSpeed = useMemo(
-    () => computeTopSpeed(snapshot.telemetry, snapshot.drivers),
-    [snapshot.telemetry, snapshot.drivers]
-  );
+  const topSpeedRef = useRef<TopSpeed | null>(null);
+  const topSpeed = useMemo(() => {
+    const current = computeTopSpeed(snapshot.telemetry, snapshot.drivers);
+    if (current && (!topSpeedRef.current || current.speed > topSpeedRef.current.speed)) {
+      topSpeedRef.current = current;
+    }
+    return topSpeedRef.current;
+  }, [snapshot.telemetry, snapshot.drivers]);
 
   const battles = useMemo(
     () => computeBattles(snapshot.timing, snapshot.drivers),
