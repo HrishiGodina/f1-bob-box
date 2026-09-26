@@ -1,10 +1,6 @@
-import os
-import sys
 import time
 
-sys.path.insert(0, os.path.dirname(__file__))
-
-from livetiming.state import merge_delta
+from app.livetiming.state import LiveSessionState, merge_delta
 
 
 def test_merge_delta_merges_plain_dicts():
@@ -65,9 +61,6 @@ def test_merge_delta_of_none_and_snapshot_ingests_the_snapshot_verbatim_minus_kf
     assert result == {"Status": "1", "Lines": {"1": {"Position": "1"}}}
 
 
-from livetiming.state import LiveSessionState
-
-
 def test_fresh_state_is_not_live_and_snapshot_is_all_empty():
     state = LiveSessionState()
     assert state.is_live() is False
@@ -124,7 +117,10 @@ def test_timing_projection_combines_all_three_timing_topics():
         "Sectors": [{"Value": "28.312", "PersonalFastest": False, "OverallFastest": False}],
         "NumberOfPitStops": 0, "InPit": False, "Retired": False,
     }}})
-    state.apply("TimingAppData", {"Lines": {"1": {"Stints": [{"Compound": "SOFT", "New": True, "TotalLaps": 5}]}}})
+    state.apply(
+        "TimingAppData",
+        {"Lines": {"1": {"Stints": [{"Compound": "SOFT", "New": True, "TotalLaps": 5}]}}},
+    )
     state.apply("TimingStats", {"Lines": {"1": {"PersonalBestLapTime": {"Value": "1:18.223"}}}})
 
     timing = state._derive_timing()
@@ -141,7 +137,10 @@ def test_timing_projection_applies_index_keyed_sector_delta():
             {"Value": "31.001", "PersonalFastest": False, "OverallFastest": False},
         ],
     }}})
-    state.apply("TimingData", {"Lines": {"1": {"Sectors": {"1": {"Value": "30.500", "PersonalFastest": True}}}}})
+    state.apply(
+        "TimingData",
+        {"Lines": {"1": {"Sectors": {"1": {"Value": "30.500", "PersonalFastest": True}}}}},
+    )
 
     sectors = state._derive_timing()["1"]["sectors"]
     assert sectors[0]["Value"] == "28.312", "sector 0 must be untouched by the sector-1 patch"
@@ -205,7 +204,9 @@ def test_race_control_projection_is_bounded_to_race_control_max():
 def test_is_live_requires_connected_status():
     state = LiveSessionState()
     state.apply("Heartbeat", {})
-    assert state.is_live() is False, "never live while disconnected, regardless of message freshness"
+    assert state.is_live() is False, (
+        "never live while disconnected, regardless of message freshness"
+    )
     state.set_connection_status("connected")
     assert state.is_live() is True
 

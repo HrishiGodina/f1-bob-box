@@ -142,7 +142,7 @@ class LiveTimingClient:
         # Since 2026 the feed serves unauthenticated connections only the
         # basic topic set — Position.z/CarData.z (driver tracking, telemetry)
         # require an F1TV subscription token (see f1auth.py), supplied via
-        # the token_provider wiring in main.py.
+        # the token_provider wiring in app/main.py.
         token = self._token_provider() if self._token_provider else None
         if token:
             auth_headers = {"Authorization": f"Bearer {token}"}

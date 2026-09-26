@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Optional
 from urllib.parse import unquote
 
-TOKEN_FILE = Path(__file__).resolve().parent.parent / ".f1auth.json"
+TOKEN_FILE = Path(__file__).resolve().parent.parent.parent / ".f1auth.json"
 LOGIN_URL = "https://f1login.fastf1.dev?port={port}"
 REFRESH_WINDOW_SECONDS = 24 * 3600
 

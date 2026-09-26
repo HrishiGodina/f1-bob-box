@@ -1,12 +1,15 @@
 import base64
 import json
-import os
-import sys
 import zlib
 
-sys.path.insert(0, os.path.dirname(__file__))
-
-from livetiming.decode import inflate_z, split_records
+from app.livetiming.decode import (
+    decode_topic_payload,
+    extract_snapshot,
+    extract_topic_message,
+    inflate_z,
+    parse_frame,
+    split_records,
+)
 
 
 def _deflate_b64(obj) -> str:
@@ -30,19 +33,15 @@ def test_inflate_z_roundtrips_raw_deflate_with_negative_wbits():
     assert inflate_z(payload) == {"Entries": [{"Cars": {"1": {"Channels": {"0": 11000}}}}]}
 
 
-from livetiming.decode import decode_topic_payload
-
-
 def test_decode_topic_payload_inflates_dot_z_topics():
     payload = _deflate_b64({"Position": [{"Entries": {"1": {"X": 10}}}]})
-    assert decode_topic_payload("Position.z", payload) == {"Position": [{"Entries": {"1": {"X": 10}}}]}
+    assert decode_topic_payload("Position.z", payload) == {
+        "Position": [{"Entries": {"1": {"X": 10}}}],
+    }
 
 
 def test_decode_topic_payload_passes_through_plain_topics():
     assert decode_topic_payload("TrackStatus", {"Status": "1"}) == {"Status": "1"}
-
-
-from livetiming.decode import parse_frame
 
 
 def test_parse_frame_returns_one_dict_per_record():
@@ -50,11 +49,12 @@ def test_parse_frame_returns_one_dict_per_record():
     assert parse_frame(raw) == [{"type": 6}, {"type": 1, "target": "X"}]
 
 
-from livetiming.decode import extract_topic_message
-
-
 def test_extract_topic_message_from_invocation_record():
-    record = {"type": 1, "target": "feed", "arguments": ["TrackStatus", {"Status": "2"}, "2026-07-26T13:00:00Z"]}
+    record = {
+        "type": 1,
+        "target": "feed",
+        "arguments": ["TrackStatus", {"Status": "2"}, "2026-07-26T13:00:00Z"],
+    }
     msg = extract_topic_message(record)
     assert msg == ("TrackStatus", {"Status": "2"}, "2026-07-26T13:00:00Z")
 
@@ -74,9 +74,6 @@ def test_extract_topic_message_returns_none_for_non_invocation():
 def test_extract_topic_message_returns_none_for_empty_arguments():
     assert extract_topic_message({"type": 1, "arguments": []}) is None
     assert extract_topic_message({"type": 1}) is None
-
-
-from livetiming.decode import extract_snapshot
 
 
 def test_extract_snapshot_decodes_every_topic_including_dot_z():

@@ -11,13 +11,13 @@ start() {
     echo "Starting F1 Dashboard..."
 
     # Start Backend
-    if [ -d "$BACKEND_DIR/venv" ]; then
+    if command -v uv >/dev/null 2>&1; then
         echo "Starting Backend (FastAPI)..."
-        "$BACKEND_DIR/venv/bin/python" "$BACKEND_DIR/main.py" > backend.log 2>&1 &
+        (cd "$BACKEND_DIR" && uv run uvicorn app.main:app --host 127.0.0.1 --port 8000) > backend.log 2>&1 &
         echo $! > $BACKEND_PID_FILE
         echo "Backend started with PID $(cat $BACKEND_PID_FILE)"
     else
-        echo "Error: Backend virtual environment not found. Please run installation steps first."
+        echo "Error: uv not found. Please install uv first (https://docs.astral.sh/uv/)."
     fi
 
     # Start Frontend
@@ -56,7 +56,7 @@ stop() {
     fi
 
     # Cleanup any remaining f1-dashboard processes
-    pkill -f "f1-dashboard/backend/main.py" 2>/dev/null
+    pkill -f "uvicorn app.main:app" 2>/dev/null
     pkill -f "f1-dashboard/frontend" 2>/dev/null
 
     echo "Dashboard stopped."

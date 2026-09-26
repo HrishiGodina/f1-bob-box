@@ -4,7 +4,8 @@
 docs/superpowers/handoffs/2026-08-17-live-timing-signalr-context-transfer.md
 §3.7. `LiveSessionState` (added in Task 3) is the only thing that calls it.
 """
-from typing import Any
+import time
+from typing import Any, Dict, List, Optional
 
 
 def merge_delta(target: Any, delta: Any) -> Any:
@@ -49,10 +50,6 @@ def merge_delta(target: Any, delta: Any) -> Any:
     return base
 
 
-import time
-from typing import Dict, List, Optional
-
-
 class LiveSessionState:
     """Process-wide, single-writer store of the live-timing feed's state.
 
@@ -89,7 +86,7 @@ class LiveSessionState:
         self._last_message_at: Optional[float] = None
         # Each driver's earliest-seen TimingData Position this session,
         # captured once and never overwritten — this process's LiveSessionState
-        # lives for exactly one session (main.py's lifespan creates one
+        # lives for exactly one session (app/main.py's lifespan creates one
         # instance per process run), so whichever position we observe first
         # for a driver is the closest available proxy for their actual
         # starting grid slot (it already reflects any grid penalty, unlike

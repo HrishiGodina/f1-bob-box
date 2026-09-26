@@ -1,12 +1,10 @@
 import os
-import sys
-sys.path.insert(0, os.path.dirname(__file__))
 
 from fastapi.testclient import TestClient
 
-from main import app
+from app.main import app
 
-FIXTURE_PATH = os.path.join(os.path.dirname(__file__), "fixtures", "live_timing_sample.jsonl")
+FIXTURE_PATH = os.path.join(os.path.dirname(__file__), "..", "fixtures", "live_timing_sample.jsonl")
 
 
 def test_ws_live_sends_initial_snapshot_on_connect():
@@ -42,7 +40,7 @@ def test_deleted_routes_are_gone():
 
 
 def test_livetiming_replay_flows_end_to_end_into_ws_live_and_status(monkeypatch):
-    # conftest.py forces LIVETIMING_AUTOSTART=0 globally so importing main.py
+    # conftest.py forces LIVETIMING_AUTOSTART=0 globally so importing app.main
     # never starts a real network connection during unrelated test runs
     # (e.g. test_circuit_history.py). This test explicitly re-enables it and
     # points it at the fixture — monkeypatch reverts both after the test.

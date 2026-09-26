@@ -1,15 +1,11 @@
 import asyncio
-import os
-import sys
 
 import httpx
 import pytest
 import respx
 
-sys.path.insert(0, os.path.dirname(__file__))
-
-from livetiming.client import CLIENT_HEADERS, LiveTimingClient, NEGOTIATE_URL
-from livetiming.state import LiveSessionState
+from app.livetiming.client import CLIENT_HEADERS, NEGOTIATE_URL, LiveTimingClient
+from app.livetiming.state import LiveSessionState
 
 
 async def _noop_on_patch(patch):
@@ -19,7 +15,9 @@ async def _noop_on_patch(patch):
 @pytest.mark.respx(base_url=NEGOTIATE_URL)
 async def test_negotiate_returns_the_connection_token():
     with respx.mock:
-        respx.options(NEGOTIATE_URL).mock(return_value=httpx.Response(200, headers={"set-cookie": "sess=abc"}))
+        respx.options(NEGOTIATE_URL).mock(
+            return_value=httpx.Response(200, headers={"set-cookie": "sess=abc"})
+        )
         respx.post(NEGOTIATE_URL, params={"negotiateVersion": "1"}).mock(
             return_value=httpx.Response(200, json={"connectionToken": "tok-123"})
         )
@@ -114,7 +112,9 @@ async def test_connect_once_sends_protocol_init_then_subscribe_with_every_topic(
 @pytest.mark.respx(base_url=NEGOTIATE_URL)
 async def test_connect_once_forwards_the_alb_sticky_session_cookie_to_the_websocket():
     with respx.mock:
-        respx.options(NEGOTIATE_URL).mock(return_value=httpx.Response(200, headers={"set-cookie": "AWSALB=xyz"}))
+        respx.options(NEGOTIATE_URL).mock(
+            return_value=httpx.Response(200, headers={"set-cookie": "AWSALB=xyz"})
+        )
         respx.post(NEGOTIATE_URL, params={"negotiateVersion": "1"}).mock(
             return_value=httpx.Response(200, json={"connectionToken": "tok-123"})
         )
@@ -170,7 +170,10 @@ async def test_run_reconnects_with_backoff_after_a_failed_connect_then_stops():
             async def __aexit__(self, *exc_info):
                 return False
 
-        working_frame = '{"type":1,"target":"feed","arguments":["TrackStatus",{"Status":"2"},"t"]}\x1e'
+        working_frame = (
+            '{"type":1,"target":"feed","arguments":'
+            '["TrackStatus",{"Status":"2"},"t"]}\x1e'
+        )
         fake_conn = _FakeConnection(frames=[working_frame])
 
         calls = {"n": 0}
@@ -193,7 +196,9 @@ async def test_run_reconnects_with_backoff_after_a_failed_connect_then_stops():
         await client.run()
 
         connection_statuses = [p["connection_status"] for p in statuses if "connection_status" in p]
-        assert connection_statuses == ["connecting", "disconnected", "reconnecting", "connected", "disconnected"]
+        assert connection_statuses == [
+            "connecting", "disconnected", "reconnecting", "connected", "disconnected",
+        ]
 
 
 @pytest.mark.respx(base_url=NEGOTIATE_URL)

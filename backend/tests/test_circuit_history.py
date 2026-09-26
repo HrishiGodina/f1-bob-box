@@ -1,9 +1,7 @@
-import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
-import sys, os
-sys.path.insert(0, os.path.dirname(__file__))
+from fastapi.testclient import TestClient
 
-from main import CIRCUIT_REDESIGN_YEAR, DEFAULT_HISTORY_WINDOW
+from app.main import app
+from app.routers.circuits import CIRCUIT_REDESIGN_YEAR, DEFAULT_HISTORY_WINDOW
 
 CURRENT_SEASON = 2026
 
@@ -30,21 +28,26 @@ def test_available_years_unknown_circuit():
     assert len(years) == DEFAULT_HISTORY_WINDOW
     assert years[-1] == 2025
 
-from fastapi.testclient import TestClient
-from main import app
-
 client = TestClient(app)
 
 def test_circuit_endpoint_returns_available_years():
     """Integration smoke test — hits the real endpoint shape with mocked upstream."""
-    import respx, httpx
-    circuit_id = "silverstone"
+    import httpx
+    import respx
     mock_circuit_resp = {
-        "MRData": {"CircuitTable": {"Circuits": [{"circuitId": "silverstone", "circuitName": "Silverstone"}]}}
+        "MRData": {
+            "CircuitTable": {
+                "Circuits": [{"circuitId": "silverstone", "circuitName": "Silverstone"}]
+            }
+        }
     }
     mock_results_resp = {
         "MRData": {"RaceTable": {"Races": [{"Results": [
-            {"position": "1", "Driver": {"driverId": "hamilton", "familyName": "Hamilton"}, "Constructor": {"name": "Mercedes"}}
+            {
+                "position": "1",
+                "Driver": {"driverId": "hamilton", "familyName": "Hamilton"},
+                "Constructor": {"name": "Mercedes"},
+            }
         ]}]}}
     }
     with respx.mock:

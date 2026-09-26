@@ -1,9 +1,12 @@
 import os
-import sys
 
-sys.path.insert(0, os.path.dirname(__file__))
-
-from livetiming.recorder import load_fixture, record_snapshot, record_topic
+from app.livetiming.recorder import (
+    load_fixture,
+    record_snapshot,
+    record_topic,
+    replay_fixture,
+)
+from app.livetiming.state import LiveSessionState
 
 
 def test_record_topic_then_load_fixture_roundtrips(tmp_path):
@@ -12,8 +15,16 @@ def test_record_topic_then_load_fixture_roundtrips(tmp_path):
     record_topic(path, "TrackStatus", {"Status": "2"}, "2026-07-26T13:00:05.000Z")
     records = list(load_fixture(path))
     assert records == [
-        {"topic": "TrackStatus", "payload": {"Status": "1"}, "timestamp": "2026-07-26T13:00:00.000Z"},
-        {"topic": "TrackStatus", "payload": {"Status": "2"}, "timestamp": "2026-07-26T13:00:05.000Z"},
+        {
+            "topic": "TrackStatus",
+            "payload": {"Status": "1"},
+            "timestamp": "2026-07-26T13:00:00.000Z",
+        },
+        {
+            "topic": "TrackStatus",
+            "payload": {"Status": "2"},
+            "timestamp": "2026-07-26T13:00:05.000Z",
+        },
     ]
 
 
@@ -26,14 +37,15 @@ def test_record_snapshot_writes_one_line_per_topic(tmp_path):
     assert all(r["timestamp"] is None for r in records)
 
 
-from livetiming.state import LiveSessionState
-from livetiming.recorder import replay_fixture
-
-
 async def test_replay_fixture_drives_the_real_decode_and_merge_pipeline(tmp_path):
     path = str(tmp_path / "sample.jsonl")
     record_topic(path, "TrackStatus", {"Status": "1"}, "t")
-    record_topic(path, "TimingData", {"Lines": {"1": {"Sectors": [{"Value": "28.312"}, {"Value": "31.001"}]}}}, "t")
+    record_topic(
+        path,
+        "TimingData",
+        {"Lines": {"1": {"Sectors": [{"Value": "28.312"}, {"Value": "31.001"}]}}},
+        "t",
+    )
     record_topic(path, "TimingData", {"Lines": {"1": {"Sectors": {"1": {"Value": "30.500"}}}}}, "t")
 
     state = LiveSessionState()
@@ -50,7 +62,7 @@ async def test_replay_fixture_drives_the_real_decode_and_merge_pipeline(tmp_path
     assert timing["1"]["sectors"][1]["Value"] == "30.500"
 
 
-FIXTURE_PATH = os.path.join(os.path.dirname(__file__), "fixtures", "live_timing_sample.jsonl")
+FIXTURE_PATH = os.path.join(os.path.dirname(__file__), "..", "fixtures", "live_timing_sample.jsonl")
 
 
 async def test_sample_fixture_replays_end_to_end_through_real_pipeline():
@@ -76,8 +88,12 @@ async def test_sample_fixture_replays_end_to_end_through_real_pipeline():
     assert timing["1"]["tyre_compound"] == "SOFT"
 
     tel = snap["telemetry"]
-    assert tel["1"] == {"rpm": 11500, "speed": 298, "gear": 7, "throttle": 87, "brake": 0, "drs": 1}
-    assert tel["44"] == {"rpm": 10800, "speed": 285, "gear": 6, "throttle": 100, "brake": 0, "drs": 0}
+    assert tel["1"] == {
+        "rpm": 11500, "speed": 298, "gear": 7, "throttle": 87, "brake": 0, "drs": 1,
+    }
+    assert tel["44"] == {
+        "rpm": 10800, "speed": 285, "gear": 6, "throttle": 100, "brake": 0, "drs": 0,
+    }
 
     pos = snap["positions"]
     assert pos["1"] == {"x": 123, "y": 456, "z": 0, "status": "OnTrack"}
