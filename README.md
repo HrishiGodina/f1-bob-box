@@ -4,6 +4,8 @@ A personal Formula 1 strategy dashboard — a real-time live-timing cockpit duri
 
 ![Tech Stack](https://img.shields.io/badge/React-Vite-blue) ![FastAPI](https://img.shields.io/badge/Backend-FastAPI-green) ![Tailwind](https://img.shields.io/badge/Style-Tailwind-teal)
 
+> CI: a GitHub Actions workflow (`.github/workflows/ci.yml`) runs typecheck, lint, tests and builds for both packages — add a status badge here once the repo is public.
+
 ---
 
 ## Features
@@ -36,17 +38,17 @@ The backend runs its own client for F1's official SignalR live-timing stream (`l
 
 ```bash
 cd backend
-python -m livetiming.f1auth            # opens the F1 login in your default browser
-python -m livetiming.f1auth --open     # same, auto-opens the URL
+uv run python -m app.livetiming.f1auth            # opens the F1 login in your default browser
+uv run python -m app.livetiming.f1auth --open     # same, auto-opens the URL
 ```
 
-The resulting subscription token is stored in `backend/.f1auth.json` (gitignored) and lasts 4 days; re-run the command to refresh. `python -m livetiming.f1harvest refresh` re-opens the browser only when the token is actually near expiry.
+The resulting subscription token is stored in `backend/.f1auth.json` (gitignored) and lasts 4 days; re-run the command to refresh. `uv run python -m app.livetiming.f1harvest refresh` re-opens the browser only when the token is actually near expiry.
 
 ---
 
 ## Getting Started
 
-**Prerequisites:** Node 18+, Python 3.9+
+**Prerequisites:** Node 22+, Python 3.12+ with [uv](https://docs.astral.sh/uv/)
 
 ```bash
 git clone https://github.com/HrishiGodina/f1-bob-box.git
@@ -61,13 +63,12 @@ Open [http://localhost:5173](http://localhost:5173).
 ```bash
 # Backend
 cd backend
-python3 -m venv venv && source venv/bin/activate
-pip install -r requirements.txt
-python main.py                     # or: uvicorn main:app --port 8000
+uv sync
+uv run uvicorn app.main:app --port 8000
 
 # Frontend (second terminal)
 cd frontend
-npm install
+npm ci
 npm run dev
 ```
 
@@ -81,10 +82,10 @@ Replay any recording through the real decode → merge → broadcast pipeline:
 
 ```bash
 cd backend
-LIVETIMING_REPLAY=recordings/<file>.jsonl python main.py
+LIVETIMING_REPLAY=recordings/<file>.jsonl uv run uvicorn app.main:app
 ```
 
-The dashboard then behaves as if that session were live. Recordings are gitignored.
+The dashboard then behaves as if that session were live. Recordings are gitignored; `backend/fixtures/` ships small synthetic recordings that work out of the box (e.g. `LIVETIMING_REPLAY=fixtures/live_demo.jsonl`).
 
 ---
 
@@ -102,16 +103,20 @@ The dashboard then behaves as if that session were live. Recordings are gitignor
 ## Testing
 
 ```bash
-cd backend && venv/bin/python -m pytest -q     # backend: feed protocol, state, endpoints
-cd frontend && npx vitest run                  # frontend: logic and demo-timeline shape
-npx tsc -b tsconfig.app.json --force           # type check
+cd backend && uv run pytest          # backend: feed protocol, state, endpoints
+cd frontend && npm test              # frontend: logic and demo-timeline shape
+cd frontend && npm run build         # type check + production build
 ```
+
+### API types
+
+The frontend's TypeScript API types (`frontend/src/shared/api/schema.d.ts`) are generated from the backend's OpenAPI schema, so the two packages can't drift. After changing a backend endpoint: save the running backend's `/openapi.json` to `frontend/src/shared/api/schema.json`, then run `npm run gen:api` in `frontend/`.
 
 ---
 
 ## Deployment
 
-`backend/railway.toml` deploys the API to Railway (Nixpacks, uvicorn). The frontend builds to static files (`npm run build`) and can be served from any static host pointing `VITE_API_BASE` at the API.
+`backend/railway.toml` deploys the API to Railway (Nixpacks, uv). The frontend builds to static files (`npm run build`) and can be served from any static host pointing `VITE_API_BASE` at the API.
 
 ---
 
@@ -120,21 +125,28 @@ npx tsc -b tsconfig.app.json --force           # type check
 ```
 f1-bob-box/
 ├── backend/
-│   ├── main.py                  # FastAPI: REST endpoints, /ws/live, lifespan wiring
-│   ├── livetiming/
-│   │   ├── client.py            # SignalR client: negotiate, subscribe, decode, record
-│   │   ├── state.py             # LiveSessionState: delta merge + derived projections
-│   │   ├── decode.py            # SignalR frame/record parsing, .z inflation
-│   │   ├── recorder.py          # JSONL recording + replay
-│   │   ├── f1auth.py            # F1TV subscription-token login flow
-│   │   └── hub.py               # WebSocket broadcaster
+│   ├── app/
+│   │   ├── main.py              # FastAPI app: lifespan, CORS, router wiring
+│   │   ├── config.py            # pydantic-settings (env configuration)
+│   │   ├── routers/             # idle, stats, circuits, livetiming routes
+│   │   ├── schemas/             # pydantic response models
+│   │   └── livetiming/
+│   │       ├── client.py        # SignalR client: negotiate, subscribe, decode, record
+│   │       ├── state.py         # LiveSessionState: delta merge + derived projections
+│   │       ├── decode.py        # SignalR frame/record parsing, .z inflation
+│   │       ├── recorder.py      # JSONL recording + replay
+│   │       ├── f1auth.py        # F1TV subscription-token login flow
+│   │       └── hub.py           # WebSocket broadcaster
+│   ├── tests/                   # pytest suite
+│   ├── fixtures/                # small synthetic recordings for replay
 │   └── recordings/              # session recordings (gitignored)
 ├── frontend/
 │   └── src/
-│       ├── App.tsx              # idle dashboard, circuit analysis
-│       └── live/                # live cockpit: tower, track map, battles, demo
-│           └── demo/            # demo timeline (real-session replay data)
-├── circuits/                    # GeoJSON layouts + start/finish points (via frontend/src/circuits)
+│       ├── app/                 # App shell: splash, nav, modal orchestration
+│       ├── features/            # feature folders: live cockpit, standings, calendar,
+│       │                        #   circuit-details, career, news, next-race
+│       ├── shared/              # api client + generated types, UI primitives, team colors
+│       └── circuits/            # GeoJSON layouts + start/finish points
 └── run-dashboard.sh
 ```
 
@@ -154,6 +166,8 @@ f1-bob-box/
 | POST | `/api/f1auth/refresh/start` | Begin a token-renewal sign-in (returns the login URL) |
 | WS | `/ws/live` | Full snapshot on connect, then incremental patches |
 
+Interactive docs: `http://localhost:8000/docs` (Swagger UI).
+
 ---
 
 ## Disclaimer
@@ -162,4 +176,4 @@ This project is a personal, non-commercial tool and is **not affiliated with, en
 
 ## License
 
-Not yet decided — a license (MIT/Apache-2.0) will be added before the public release.
+[MIT](LICENSE) — see [LICENSE](LICENSE).
