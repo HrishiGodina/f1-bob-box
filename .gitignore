@@ -27,3 +27,8 @@ backend/recordings/
 backend/.f1auth.json
 .serena/
 race-issues/
+
+# Personal / agent files
+MEMORY.md
+GEMINI.md
+.claude/
