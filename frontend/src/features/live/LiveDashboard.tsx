@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { useLiveSnapshot } from "./useLiveSnapshot";
 import {
@@ -54,14 +54,19 @@ export function LiveDashboard({ demoActive, onToggleDemo }: LiveDashboardProps) 
     [snapshot.timing, snapshot.drivers]
   );
 
-  const topSpeedRef = useRef<TopSpeed | null>(null);
-  const topSpeed = useMemo(() => {
-    const current = computeTopSpeed(snapshot.telemetry, snapshot.drivers);
-    if (current && (!topSpeedRef.current || current.speed > topSpeedRef.current.speed)) {
-      topSpeedRef.current = current;
-    }
-    return topSpeedRef.current;
-  }, [snapshot.telemetry, snapshot.drivers]);
+  const sessionKey = `${snapshot.session_info.Meeting?.Name ?? ""}-${snapshot.session_info.Type ?? ""}`;
+  const currentTopSpeed = useMemo(
+    () => computeTopSpeed(snapshot.telemetry, snapshot.drivers),
+    [snapshot.telemetry, snapshot.drivers]
+  );
+  const [topSpeedSession, setTopSpeedSession] = useState(sessionKey);
+  const [topSpeed, setTopSpeed] = useState<TopSpeed | null>(null);
+  if (topSpeedSession !== sessionKey) {
+    setTopSpeedSession(sessionKey);
+    setTopSpeed(null);
+  } else if (currentTopSpeed && (!topSpeed || currentTopSpeed.speed > topSpeed.speed)) {
+    setTopSpeed(currentTopSpeed);
+  }
 
   const battles = useMemo(
     () => computeBattles(snapshot.timing, snapshot.drivers),

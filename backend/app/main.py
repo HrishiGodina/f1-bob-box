@@ -46,6 +46,7 @@ async def lifespan(app: FastAPI):
     runtime: Dict[str, Any] = {}
 
     def start_client() -> None:
+        nonlocal client
         RECORDINGS_DIR.mkdir(parents=True, exist_ok=True)
         client = LiveTimingClient(
             live_state,
