@@ -5,6 +5,15 @@ import { resolveCircuitKey, geoJsonToSvgPath, geoJsonToScreenPoints, fallbackTra
 import { CIRCUIT_GEOJSON } from "../../circuits";
 import START_FINISH from "../../circuits/start_finish.json";
 import FEED_CALIBRATION from "../../circuits/feed_calibration.json";
+import CORNERS from "../../circuits/corners.json";
+
+interface CornerMark {
+  n: number;
+  fx: number;
+  fy: number;
+  ox: number;
+  oy: number;
+}
 
 interface Bounds {
   minX: number;
@@ -72,6 +81,11 @@ export function TrackMap({ drivers, positions, selectedDriver, sessionName, weat
     }
     return circuitKey ? fallbackTrackPath(circuitKey) : null;
   }, [circuitKey]);
+
+  const corners = useMemo(
+    () => (circuitKey ? ((CORNERS as Record<string, CornerMark[]>)[circuitKey] ?? []) : []),
+    [circuitKey]
+  );
 
   const startLine = useMemo(() => {
     if (!circuitKey || !CIRCUIT_GEOJSON[circuitKey]) return null;
@@ -151,14 +165,33 @@ export function TrackMap({ drivers, positions, selectedDriver, sessionName, weat
       <div className="relative w-full aspect-square border border-white/5 rounded-4xl bg-surface/50 backdrop-blur-xs overflow-hidden">
         <svg className="w-full h-full" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid meet">
           {trackPath && (
-            <path d={trackPath} stroke="white" strokeOpacity={0.12} strokeWidth={2} fill="none" />
+            <path d={trackPath} stroke="white" strokeOpacity={0.16} strokeWidth={7} strokeLinecap="round" strokeLinejoin="round" fill="none" />
           )}
           {startLine && (
             <>
-              <line x1={startLine.x1} y1={startLine.y1} x2={startLine.x2} y2={startLine.y2} stroke="black" strokeOpacity={0.6} strokeWidth={6} strokeLinecap="round" />
-              <line x1={startLine.x1} y1={startLine.y1} x2={startLine.x2} y2={startLine.y2} stroke="white" strokeWidth={3.5} strokeLinecap="butt" strokeDasharray="5 3" />
+              <line x1={startLine.x1} y1={startLine.y1} x2={startLine.x2} y2={startLine.y2} stroke="black" strokeOpacity={0.7} strokeWidth={9} strokeLinecap="round" />
+              <line x1={startLine.x1} y1={startLine.y1} x2={startLine.x2} y2={startLine.y2} stroke="white" strokeWidth={4} strokeLinecap="butt" strokeDasharray="5 3" />
             </>
           )}
+          {corners.map((c) => {
+            const cx = 20 + c.fx * 360;
+            const cy = 20 + (1 - c.fy) * 360;
+            return (
+              <g key={c.n}>
+                <circle cx={cx} cy={cy} r={1.6} fill="white" fillOpacity={0.35} />
+                <text
+                  x={cx + c.ox * 11}
+                  y={cy + c.oy * 11}
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  className="text-[7px] font-bold fill-white/45 pointer-events-none tabular-nums"
+                  style={{ paintOrder: "stroke", stroke: "rgba(0,0,0,0.8)", strokeWidth: 2.5 }}
+                >
+                  {c.n}
+                </text>
+              </g>
+            );
+          })}
           {points.map((p) => {
             const driver = drivers[p.racingNumber];
             const isSelected = selectedDriver === p.racingNumber;
