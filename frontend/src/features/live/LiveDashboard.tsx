@@ -191,13 +191,13 @@ export function LiveDashboard({ demoActive, onToggleDemo }: LiveDashboardProps) 
           )}
           <RaceControlTicker messages={snapshot.race_control} />
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-            <SessionBests bests={bests} topSpeed={topSpeed} positionGain={positionGain} />
-            <SectorBests sectors={sectorBests} />
-          </div>
-
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <div className="lg:col-span-8">
+            <div className="lg:col-span-8 space-y-6">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                <SessionBests bests={bests} topSpeed={topSpeed} positionGain={positionGain} />
+                <SectorBests sectors={sectorBests} />
+              </div>
+
               <TimingTower
                 drivers={snapshot.drivers}
                 timing={snapshot.timing}

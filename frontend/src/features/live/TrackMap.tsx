@@ -1,4 +1,4 @@
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import type { DriverInfo, PositionEntry, WeatherInfo } from "./types";
 import { resolveCircuitKey, geoJsonToSvgPath, geoJsonToScreenPoints, fallbackTrackPath } from "../../circuits/track";
@@ -6,6 +6,11 @@ import { CIRCUIT_GEOJSON } from "../../circuits";
 import START_FINISH from "../../circuits/start_finish.json";
 import FEED_CALIBRATION from "../../circuits/feed_calibration.json";
 import CORNERS from "../../circuits/corners.json";
+import { fitFeedCalibration, isGoodFit, type FeedCalibration, type FitResult } from "./trackCalibration";
+
+const FEED_SAMPLE_LIMIT = 2000;
+const REFIT_INTERVAL_MS = 4000;
+const SETTLED_REFIT_INTERVAL_MS = 60000;
 
 interface CornerMark {
   n: number;
@@ -87,11 +92,55 @@ export function TrackMap({ drivers, positions, selectedDriver, sessionName, weat
     [circuitKey]
   );
 
+  const outlinePoints = useMemo(
+    () =>
+      circuitKey && CIRCUIT_GEOJSON[circuitKey]
+        ? geoJsonToScreenPoints(CIRCUIT_GEOJSON[circuitKey], 400, 400, 20, true)
+        : [],
+    [circuitKey]
+  );
+
+  // The live feed's coordinate frame is set per session, so it is fitted from
+  // the arriving positions rather than baked (see trackCalibration.ts). A
+  // baked entry, where one exists, skips the warm-up.
+  const bakedCalib = circuitKey
+    ? (FEED_CALIBRATION as Record<string, FeedCalibration>)[circuitKey]
+    : undefined;
+  const [fitted, setFitted] = useState<{ key: string | null; result: FitResult } | null>(null);
+  const feedSamplesRef = useRef<number[][]>([]);
+  const bufferKeyRef = useRef<string | null>(null);
+  const lastFitAtRef = useRef(0);
+
+  useEffect(() => {
+    if (bakedCalib || outlinePoints.length < 20) return;
+    if (bufferKeyRef.current !== circuitKey) {
+      bufferKeyRef.current = circuitKey;
+      feedSamplesRef.current = [];
+      boundsRef.current = null;
+      lastFitAtRef.current = 0;
+    }
+    const samples = feedSamplesRef.current;
+    for (const p of Object.values(positions)) {
+      if (typeof p.x === "number" && typeof p.y === "number") samples.push([p.x, p.y]);
+    }
+    if (samples.length > FEED_SAMPLE_LIMIT) samples.splice(0, samples.length - FEED_SAMPLE_LIMIT);
+
+    const previous = fitted && fitted.key === circuitKey ? fitted.result : null;
+    const interval = previous && isGoodFit(previous) ? SETTLED_REFIT_INTERVAL_MS : REFIT_INTERVAL_MS;
+    const now = Date.now();
+    if (samples.length < 120 || now - lastFitAtRef.current < interval) return;
+    lastFitAtRef.current = now;
+    const result = fitFeedCalibration(samples, outlinePoints);
+    if (result && (!previous || result.score < previous.score)) setFitted({ key: circuitKey, result });
+  }, [positions, outlinePoints, bakedCalib, circuitKey, fitted]);
+
+  const calibration = bakedCalib ?? (fitted && fitted.key === circuitKey ? fitted.result.calibration : undefined);
+
   const startLine = useMemo(() => {
     if (!circuitKey || !CIRCUIT_GEOJSON[circuitKey]) return null;
     const sf = (START_FINISH as Record<string, { fx: number; fy: number }>)[circuitKey];
     if (!sf) return null;
-    const pathPoints = geoJsonToScreenPoints(CIRCUIT_GEOJSON[circuitKey], 400, 400, 20, true);
+    const pathPoints = outlinePoints;
     if (pathPoints.length < 2) return null;
     const sx = 20 + sf.fx * 360;
     const sy = 20 + (1 - sf.fy) * 360;
@@ -119,7 +168,7 @@ export function TrackMap({ drivers, positions, selectedDriver, sessionName, weat
       x2: best.px + nx * half,
       y2: best.py + ny * half,
     };
-  }, [circuitKey]);
+  }, [circuitKey, outlinePoints]);
 
   const points = useMemo(() => {
     const withCoords = Object.entries(positions).filter(
@@ -128,16 +177,11 @@ export function TrackMap({ drivers, positions, selectedDriver, sessionName, weat
     );
     if (withCoords.length === 0) return [];
 
-    const calib = circuitKey
-      ? (FEED_CALIBRATION as Record<string, { a: number; b: number; c: number; d: number; e: number; f: number }>)[
-          circuitKey
-        ]
-      : null;
-    if (calib) {
+    if (calibration) {
       return withCoords.map(([racingNumber, p]) => ({
         racingNumber,
-        normX: 20 + (calib.a * p.x + calib.b * p.y + calib.c) * 360,
-        normY: 20 + (1 - (calib.d * p.x + calib.e * p.y + calib.f)) * 360,
+        normX: 20 + (calibration.a * p.x + calibration.b * p.y + calibration.c) * 360,
+        normY: 20 + (1 - (calibration.d * p.x + calibration.e * p.y + calibration.f)) * 360,
       }));
     }
 
@@ -155,7 +199,7 @@ export function TrackMap({ drivers, positions, selectedDriver, sessionName, weat
       normX: ((p.x - bounds.minX) / rangeX) * 360 + 20,
       normY: ((bounds.maxY - p.y) / rangeY) * 360 + 20,
     }));
-  }, [positions, circuitKey]);
+  }, [positions, calibration]);
 
   return (
     <div className="panel relative w-full bg-ink p-10 border-white/5">
