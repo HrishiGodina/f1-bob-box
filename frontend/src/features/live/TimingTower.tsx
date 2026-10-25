@@ -1,7 +1,8 @@
-import { ArrowDown, ArrowUp, Timer, TriangleAlert } from "lucide-react";
+import { ArrowDown, ArrowUp, LayoutGrid, LayoutList, Timer, TriangleAlert } from "lucide-react";
 import { motion } from "framer-motion";
-import type { DriverInfo, SectorTime, TimingLine } from "./types";
+import type { DriverInfo, SectorTime, TelemetryChannels, TimingLine } from "./types";
 import type { DriverPenaltyState } from "./liveState";
+import type { TowerLayout } from "./liveView";
 
 // Places gained (green, up) or lost (red, down) since the driver's starting
 // grid position — see LiveDashboard's positionChanges (backed by the
@@ -43,19 +44,23 @@ function tyreColor(compound: string | null): string {
 // timing tower badges a car's current rubber — with its age in laps beside
 // it. Ring-and-letter (not a filled disc) keeps even the near-white HARD
 // readable on the dark studio background.
-function TyreBadge({ compound, age }: { compound: string | null; age: number | null }) {
+function TyreBadge({ compound, age, size = "md" }: { compound: string | null; age: number | null; size?: "md" | "sm" }) {
   const color = tyreColor(compound);
   const letter = compound ? compound[0].toUpperCase() : "?";
+  const ring = size === "sm" ? "w-5 h-5 text-[9px]" : "w-7 h-7 text-[11px]";
   return (
     <div className="flex items-center gap-2">
       <div
-        className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-black shrink-0"
+        className={`${ring} rounded-full flex items-center justify-center font-black shrink-0`}
         style={{ border: `2px solid ${color}`, color }}
         title={compound ? `${compound} · ${age ?? 0} laps` : "Compound unknown"}
       >
         {letter}
       </div>
-      <span className="text-[11px] font-mono text-muted tabular-nums">{age ?? 0}L</span>
+      <span className={`${size === "sm" ? "text-[9px]" : "text-[11px]"} font-mono text-muted tabular-nums`}>
+        {age ?? 0}
+        {size === "sm" ? "" : "L"}
+      </span>
     </div>
   );
 }
@@ -95,6 +100,55 @@ function sectorClass(sector: SectorTime | undefined): string {
 const ROW_GRID =
   "grid grid-cols-[1.75rem_minmax(5rem,1.2fr)_5.5rem_2.5rem_2.75rem_5rem_5.25rem_8rem_5.25rem] items-center gap-2";
 
+export interface TimingTowerControls {
+  layout: TowerLayout;
+  onLayoutChange: (layout: TowerLayout) => void;
+}
+
+// Segmented switch between the stacked table and the two-column grid, the
+// way a broadcast tower vs. MultiViewer-style overview differ.
+function LayoutToggle({ layout, onLayoutChange }: TimingTowerControls) {
+  const options = [
+    { id: "tower" as const, icon: LayoutList, title: "Stacked rows" },
+    { id: "grid" as const, icon: LayoutGrid, title: "Two-column grid" },
+  ];
+  return (
+    <div className="flex items-center gap-0.5 rounded-full bg-black/30 p-0.5">
+      {options.map(({ id, icon: Icon, title }) => (
+        <button
+          key={id}
+          type="button"
+          title={title}
+          aria-label={title}
+          aria-pressed={layout === id}
+          onClick={() => onLayoutChange(id)}
+          className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors cursor-pointer ${
+            layout === id ? "bg-white/90 text-black" : "text-white/60 hover:text-white"
+          }`}
+        >
+          <Icon size={13} strokeWidth={3} />
+        </button>
+      ))}
+    </div>
+  );
+}
+
+export function TimingTowerHeader({
+  count,
+  layout,
+  onLayoutChange,
+}: TimingTowerControls & { count: number }) {
+  return (
+    <div className="px-8 py-6 bg-accent flex justify-between items-center gap-4">
+      <span className="font-black uppercase italic tracking-tighter text-lg">Running Order</span>
+      <div className="flex items-center gap-3">
+        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/70">{count} Cars</span>
+        <LayoutToggle layout={layout} onLayoutChange={onLayoutChange} />
+      </div>
+    </div>
+  );
+}
+
 export interface TimingTowerProps {
   drivers: Record<string, DriverInfo>;
   timing: Record<string, TimingLine>;
@@ -121,15 +175,14 @@ export function TimingTower({
   fastestPaceDriver,
   positionChanges,
   driverFlags,
-}: TimingTowerProps) {
+  layout,
+  onLayoutChange,
+}: TimingTowerProps & TimingTowerControls) {
   const rows = Object.entries(timing).sort((a, b) => comparePosition(a, b, drivers));
 
   return (
     <div className="panel p-0 overflow-hidden bg-white/1">
-      <div className="px-8 py-6 bg-accent flex justify-between items-center">
-        <span className="font-black uppercase italic tracking-tighter text-lg">Running Order</span>
-        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/70">{rows.length} Cars</span>
-      </div>
+      <TimingTowerHeader count={rows.length} layout={layout} onLayoutChange={onLayoutChange} />
 
       <div className="overflow-x-auto custom-scrollbar">
         <div className="min-w-160">
@@ -254,6 +307,162 @@ export function TimingTower({
               );
             })}
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Two-column overview in the style of MultiViewer's tower: same fields as
+// the table, folded into one dense line per car (position, driver, tyre,
+// speed/gear, last, interval, gap, sectors, best) split across two columns
+// so the whole field fits without scrolling.
+const COMPACT_ROW_GRID =
+  "grid grid-cols-[1.25rem_0.2rem_minmax(3rem,1fr)_2rem_2.75rem_3.25rem_2.75rem_2.75rem_5.25rem_3.25rem] items-center gap-1";
+
+export interface TimingTowerGridProps extends TimingTowerProps, TimingTowerControls {
+  telemetry: Record<string, TelemetryChannels>;
+}
+
+export function TimingTowerGrid({
+  drivers,
+  timing,
+  telemetry,
+  selectedDriver,
+  onSelectDriver,
+  fastestLapDriver,
+  fastestPaceDriver,
+  positionChanges,
+  driverFlags,
+  layout,
+  onLayoutChange,
+}: TimingTowerGridProps) {
+  const rows = Object.entries(timing).sort((a, b) => comparePosition(a, b, drivers));
+  const half = Math.ceil(rows.length / 2);
+  const columns = [rows.slice(0, half), rows.slice(half)];
+
+  return (
+    <div className="panel p-0 overflow-hidden bg-white/1">
+      <TimingTowerHeader count={rows.length} layout={layout} onLayoutChange={onLayoutChange} />
+
+      <div className="overflow-x-auto custom-scrollbar">
+        <div className="min-w-96 grid grid-cols-1 xl:grid-cols-2 gap-x-4 p-2">
+          {rows.length === 0 && (
+            <div className="col-span-full p-8 text-center text-muted text-xs uppercase tracking-widest">
+              Waiting for timing data...
+            </div>
+          )}
+          {rows.length > 0 &&
+            columns.map((column, columnIndex) => (
+              <div key={columnIndex} className="min-w-0">
+                {column.map(([racingNumber, line]) => {
+                  const driver = drivers[racingNumber];
+                  const isSelected = selectedDriver === racingNumber;
+                  const teamColour = driver?.team_colour ? driver.team_colour : "#444444";
+                  const isFastestLap = fastestLapDriver === racingNumber;
+                  const isFastestPace = fastestPaceDriver === racingNumber;
+                  const flags: DriverPenaltyState | undefined = driverFlags[racingNumber];
+                  const channels = telemetry[racingNumber];
+                  return (
+                    <motion.div
+                      key={racingNumber}
+                      layout
+                      transition={{ type: "spring", stiffness: 350, damping: 32 }}
+                      onClick={() => onSelectDriver(racingNumber)}
+                      className={`${COMPACT_ROW_GRID} px-2 py-1.5 rounded-xl cursor-pointer transition-colors ${
+                        isSelected ? "bg-accent/15" : "hover:bg-white/3"
+                      } ${line.retired ? "opacity-40" : ""}`}
+                    >
+                      <span className="text-xs font-black text-white/35 text-right tabular-nums">
+                        {line.position ?? "-"}
+                      </span>
+
+                      <span className="w-0.5 h-5 rounded-full" style={{ backgroundColor: teamColour }} />
+
+                      <div className="flex items-center gap-1 min-w-0">
+                        <span className="font-black uppercase italic text-[11px] leading-none truncate">
+                          {driver?.tla ?? `#${racingNumber}`}
+                        </span>
+                        <PositionChange change={positionChanges[racingNumber]} />
+                        {isFastestLap && (
+                          <span title="Fastest lap" className="text-[#b45cff] shrink-0">
+                            <Timer size={9} strokeWidth={3} />
+                          </span>
+                        )}
+                        {flags?.investigating && (
+                          <span title="Under investigation" className="text-amber-400 shrink-0">
+                            <TriangleAlert size={9} strokeWidth={2.5} />
+                          </span>
+                        )}
+                        {flags?.pendingPenalty && !flags?.investigating && (
+                          <span title={`Unserved penalty (${flags.pendingPenalty})`} className="text-accent shrink-0">
+                            <TriangleAlert size={9} strokeWidth={2.5} />
+                          </span>
+                        )}
+                        {line.in_pit && (
+                          <span className="text-[7px] font-black text-accent border border-accent/50 rounded-sm px-0.5 not-italic tracking-widest">
+                            PIT
+                          </span>
+                        )}
+                        {line.retired && (
+                          <span className="text-[7px] font-black text-muted border border-white/20 rounded-sm px-0.5 not-italic tracking-widest">
+                            OUT
+                          </span>
+                        )}
+                      </div>
+
+                      <TyreBadge compound={line.tyre_compound} age={line.stint_laps} size="sm" />
+
+                      <span className="text-[10px] font-mono tabular-nums text-white/80 truncate">
+                        {channels?.speed != null ? Math.round(channels.speed) : "—"}
+                        {channels?.gear != null && (
+                          <span className="text-[8px] text-muted ml-0.5">G{channels.gear}</span>
+                        )}
+                      </span>
+
+                      <span
+                        className="text-[10px] font-mono tabular-nums truncate"
+                        style={{ color: isFastestPace ? "#2dd4bf" : "#e5e5e5" }}
+                      >
+                        {line.last_lap?.Value || "—"}
+                      </span>
+
+                      <span
+                        className={`text-[10px] font-mono tabular-nums truncate ${
+                          line.catching ? "text-emerald-400" : "text-white/60"
+                        }`}
+                      >
+                        {line.interval || "—"}
+                      </span>
+
+                      <span className="text-[10px] font-mono tabular-nums text-white truncate">
+                        {line.gap_to_leader || "LEADER"}
+                      </span>
+
+                      <div className="flex gap-0.5">
+                        {[0, 1, 2].map((sectorIndex) => (
+                          <div
+                            key={sectorIndex}
+                            className={`flex-1 h-4 rounded flex items-center justify-center text-[8px] font-bold tabular-nums tracking-tighter ${sectorClass(
+                              line.sectors[sectorIndex]
+                            )}`}
+                          >
+                            {line.sectors[sectorIndex]?.Value ?? "·"}
+                          </div>
+                        ))}
+                      </div>
+
+                      <span
+                        className="text-[10px] font-mono tabular-nums font-black truncate"
+                        style={{ color: isFastestLap ? "#b45cff" : "#e5e5e5" }}
+                      >
+                        {line.best_lap?.Value || line.personal_best_lap?.Value || "—"}
+                      </span>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            ))}
         </div>
       </div>
     </div>

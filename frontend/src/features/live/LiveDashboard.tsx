@@ -10,13 +10,14 @@ import {
   trackFlag,
 } from "./liveState";
 import type { TopSpeed } from "./liveState";
-import { shouldShowNoSessionPanel } from "./liveView";
+import { browserStorage, loadTowerLayout, saveTowerLayout, shouldShowNoSessionPanel } from "./liveView";
+import type { TowerLayout } from "./liveView";
 import { computeBattles } from "./battles";
 import { useQualifyingGrid } from "./useQualifyingGrid";
 import { startF1AuthRefresh, useF1AuthStatus } from "./useF1AuthStatus";
 import { SessionBests } from "./SessionBests";
 import { SectorBests } from "./SectorBests";
-import { TimingTower } from "./TimingTower";
+import { TimingTower, TimingTowerGrid } from "./TimingTower";
 import { TrackMap } from "./TrackMap";
 import { RaceControlTicker } from "./RaceControlTicker";
 import { BattleWatchList } from "./BattleWatchList";
@@ -31,6 +32,12 @@ export function LiveDashboard({ demoActive, onToggleDemo }: LiveDashboardProps) 
   const { snapshot, hasSnapshot } = useLiveSnapshot(demoActive);
   const [selectedDriver, setSelectedDriver] = useState<string | null>(null);
   const [scrolled, setScrolled] = useState(false);
+  const [towerLayout, setTowerLayout] = useState<TowerLayout>(() => loadTowerLayout(browserStorage()));
+
+  const changeTowerLayout = (layout: TowerLayout) => {
+    setTowerLayout(layout);
+    saveTowerLayout(browserStorage(), layout);
+  };
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 120);
@@ -198,16 +205,34 @@ export function LiveDashboard({ demoActive, onToggleDemo }: LiveDashboardProps) 
                 <SectorBests sectors={sectorBests} />
               </div>
 
-              <TimingTower
-                drivers={snapshot.drivers}
-                timing={snapshot.timing}
-                selectedDriver={selectedDriver}
-                onSelectDriver={setSelectedDriver}
-                fastestLapDriver={bests.fastestLap?.racingNumber ?? null}
-                fastestPaceDriver={topSpeed?.racingNumber ?? null}
-                positionChanges={positionChanges}
-                driverFlags={driverFlags}
-              />
+              {towerLayout === "grid" ? (
+                <TimingTowerGrid
+                  drivers={snapshot.drivers}
+                  timing={snapshot.timing}
+                  telemetry={snapshot.telemetry}
+                  selectedDriver={selectedDriver}
+                  onSelectDriver={setSelectedDriver}
+                  fastestLapDriver={bests.fastestLap?.racingNumber ?? null}
+                  fastestPaceDriver={topSpeed?.racingNumber ?? null}
+                  positionChanges={positionChanges}
+                  driverFlags={driverFlags}
+                  layout={towerLayout}
+                  onLayoutChange={changeTowerLayout}
+                />
+              ) : (
+                <TimingTower
+                  drivers={snapshot.drivers}
+                  timing={snapshot.timing}
+                  selectedDriver={selectedDriver}
+                  onSelectDriver={setSelectedDriver}
+                  fastestLapDriver={bests.fastestLap?.racingNumber ?? null}
+                  fastestPaceDriver={topSpeed?.racingNumber ?? null}
+                  positionChanges={positionChanges}
+                  driverFlags={driverFlags}
+                  layout={towerLayout}
+                  onLayoutChange={changeTowerLayout}
+                />
+              )}
             </div>
 
             <div className="lg:col-span-4 space-y-6">

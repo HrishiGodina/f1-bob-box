@@ -50,6 +50,26 @@ export function browserStorage(): StorageLike {
   }
 }
 
+export type TowerLayout = "tower" | "grid";
+
+const TOWER_LAYOUT_KEY = "f1.towerLayout";
+
+export function loadTowerLayout(storage: StorageLike): TowerLayout {
+  try {
+    return storage.getItem(TOWER_LAYOUT_KEY) === "grid" ? "grid" : "tower";
+  } catch {
+    return "tower";
+  }
+}
+
+export function saveTowerLayout(storage: StorageLike, layout: TowerLayout): void {
+  try {
+    storage.setItem(TOWER_LAYOUT_KEY, layout);
+  } catch {
+    // Storage disabled: the preference simply doesn't persist.
+  }
+}
+
 export function saveOverride(storage: StorageLike, value: LiveOverride): void {
   try {
     if (value === null) {
