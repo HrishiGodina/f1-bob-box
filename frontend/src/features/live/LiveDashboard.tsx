@@ -10,14 +10,13 @@ import {
   trackFlag,
 } from "./liveState";
 import type { TopSpeed } from "./liveState";
-import { browserStorage, loadTowerLayout, saveTowerLayout, shouldShowNoSessionPanel } from "./liveView";
-import type { TowerLayout } from "./liveView";
+import { shouldShowNoSessionPanel } from "./liveView";
 import { computeBattles } from "./battles";
 import { useQualifyingGrid } from "./useQualifyingGrid";
 import { startF1AuthRefresh, useF1AuthStatus } from "./useF1AuthStatus";
 import { SessionBests } from "./SessionBests";
 import { SectorBests } from "./SectorBests";
-import { TimingTower, TimingTowerGrid } from "./TimingTower";
+import { TimingTower } from "./TimingTower";
 import { TrackMap } from "./TrackMap";
 import { RaceControlTicker } from "./RaceControlTicker";
 import { BattleWatchList } from "./BattleWatchList";
@@ -32,12 +31,6 @@ export function LiveDashboard({ demoActive, onToggleDemo }: LiveDashboardProps) 
   const { snapshot, hasSnapshot } = useLiveSnapshot(demoActive);
   const [selectedDriver, setSelectedDriver] = useState<string | null>(null);
   const [scrolled, setScrolled] = useState(false);
-  const [towerLayout, setTowerLayout] = useState<TowerLayout>(() => loadTowerLayout(browserStorage()));
-
-  const changeTowerLayout = (layout: TowerLayout) => {
-    setTowerLayout(layout);
-    saveTowerLayout(browserStorage(), layout);
-  };
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 120);
@@ -199,43 +192,20 @@ export function LiveDashboard({ demoActive, onToggleDemo }: LiveDashboardProps) 
           <RaceControlTicker messages={snapshot.race_control} />
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <div className="lg:col-span-8 space-y-6">
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                <SessionBests bests={bests} topSpeed={topSpeed} positionGain={positionGain} />
-                <SectorBests sectors={sectorBests} />
-              </div>
-
-              {towerLayout === "grid" ? (
-                <TimingTowerGrid
-                  drivers={snapshot.drivers}
-                  timing={snapshot.timing}
-                  telemetry={snapshot.telemetry}
-                  selectedDriver={selectedDriver}
-                  onSelectDriver={setSelectedDriver}
-                  fastestLapDriver={bests.fastestLap?.racingNumber ?? null}
-                  fastestPaceDriver={topSpeed?.racingNumber ?? null}
-                  positionChanges={positionChanges}
-                  driverFlags={driverFlags}
-                  layout={towerLayout}
-                  onLayoutChange={changeTowerLayout}
-                />
-              ) : (
-                <TimingTower
-                  drivers={snapshot.drivers}
-                  timing={snapshot.timing}
-                  selectedDriver={selectedDriver}
-                  onSelectDriver={setSelectedDriver}
-                  fastestLapDriver={bests.fastestLap?.racingNumber ?? null}
-                  fastestPaceDriver={topSpeed?.racingNumber ?? null}
-                  positionChanges={positionChanges}
-                  driverFlags={driverFlags}
-                  layout={towerLayout}
-                  onLayoutChange={changeTowerLayout}
-                />
-              )}
+            <div className="lg:col-span-8 lg:row-span-2 min-h-0 lg:relative">
+              <TimingTower
+                drivers={snapshot.drivers}
+                timing={snapshot.timing}
+                selectedDriver={selectedDriver}
+                onSelectDriver={setSelectedDriver}
+                fastestLapDriver={bests.fastestLap?.racingNumber ?? null}
+                fastestPaceDriver={topSpeed?.racingNumber ?? null}
+                positionChanges={positionChanges}
+                driverFlags={driverFlags}
+              />
             </div>
 
-            <div className="lg:col-span-4 space-y-6">
+            <div className="lg:col-span-4">
               <TrackMap
                 drivers={snapshot.drivers}
                 positions={snapshot.positions}
@@ -243,7 +213,18 @@ export function LiveDashboard({ demoActive, onToggleDemo }: LiveDashboardProps) 
                 sessionName={sessionName}
                 weather={snapshot.weather}
               />
+            </div>
+
+            <div className="lg:col-span-4">
               <CompactTelemetry drivers={snapshot.drivers} telemetry={snapshot.telemetry} selectedDriver={selectedDriver} />
+            </div>
+
+            <div className="lg:col-span-8 grid grid-cols-2 sm:grid-cols-3 gap-4 content-start">
+              <SessionBests bests={bests} topSpeed={topSpeed} positionGain={positionGain} />
+              <SectorBests sectors={sectorBests} />
+            </div>
+
+            <div className="lg:col-span-4">
               <BattleWatchList battles={battles} telemetry={snapshot.telemetry} timing={snapshot.timing} />
             </div>
           </div>
